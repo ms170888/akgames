@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AK Games — Play. Compete. Have Fun!</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Animated background particles -->
+    <canvas id="particles-bg"></canvas>
+
+    <!-- MAIN MENU -->
+    <div id="main-menu">
+        <header>
+            <h1 class="logo">🎮 AK <span class="glow-text">Games</span></h1>
+            <p class="tagline">Play. Compete. Have Fun!</p>
+        </header>
+        <div class="games-grid">
+            <div class="game-card" onclick="launchGame('snake')">
+                <div class="card-icon">🐍</div>
+                <h2>Snake</h2>
+                <p>Eat, grow, survive!</p>
+                <button class="play-btn">▶ PLAY</button>
+            </div>
+            <div class="game-card" onclick="launchGame('tictactoe')">
+                <div class="card-icon">❌⭕</div>
+                <h2>Tic Tac Toe</h2>
+                <p>Beat the computer!</p>
+                <button class="play-btn">▶ PLAY</button>
+            </div>
+            <div class="game-card" onclick="launchGame('memory')">
+                <div class="card-icon">🧠</div>
+                <h2>Memory Match</h2>
+                <p>Find all the pairs!</p>
+                <button class="play-btn">▶ PLAY</button>
+            </div>
+            <div class="game-card" onclick="launchGame('runner')">
+                <div class="card-icon">🏃</div>
+                <h2>Endless Runner</h2>
+                <p>Jump and survive!</p>
+                <button class="play-btn">▶ PLAY</button>
+            </div>
+            <div class="game-card" onclick="launchGame('puzzle')">
+                <div class="card-icon">🧩</div>
+                <h2>Slide Puzzle</h2>
+                <p>Arrange the tiles!</p>
+                <button class="play-btn">▶ PLAY</button>
+            </div>
+            <div class="game-card" onclick="launchGame('shooter')">
+                <div class="card-icon">🎯</div>
+                <h2>Target Shooter</h2>
+                <p>Aim and click fast!</p>
+                <button class="play-btn">▶ PLAY</button>
+            </div>
+            <div class="game-card" onclick="launchGame('pong')">
+                <div class="card-icon">🏓</div>
+                <h2>Pong</h2>
+                <p>Classic paddle battle!</p>
+                <button class="play-btn">▶ PLAY</button>
+            </div>
+        </div>
+        <footer>
+            <p>Made with ❤️ for Maaz | AK Games 2025</p>
+        </footer>
+    </div>
+
+    <!-- GAME CONTAINER (all games render here) -->
+    <div id="game-container" class="hidden">
+        <div id="game-header">
+            <button class="back-btn" onclick="backToMenu()">⬅ Back</button>
+            <h2 id="game-title"></h2>
+            <div id="game-score-display"></div>
+        </div>
+        <div id="game-area"></div>
+    </div>
+
+    <script src="games.js"></script>
+</body>
+</html>
