@@ -73,6 +73,7 @@ function launchGame(name) {
         case 'puzzle': initPuzzle(); break;
         case 'shooter': initShooter(); break;
         case 'pong': initPong(); break;
+        case 'bingo': initBingo(); break;
     }
 }
 
@@ -1019,5 +1020,242 @@ function initPong() {
         document.removeEventListener('keydown', onKey);
         canvas.removeEventListener('mousemove', onMouseMove);
         canvas.removeEventListener('touchmove', onTouchMove);
+    };
+}
+
+// ==================== BINGO ====================
+function initBingo() {
+    gameTitle.textContent = '🎱 Bingo';
+
+    // Generate a random bingo card (5x5) with FREE center
+    function generateCard() {
+        const cols = {
+            B: [], I: [], N: [], G: [], O: []
+        };
+        const letters = ['B','I','N','G','O'];
+        const ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
+
+        for (let c = 0; c < 5; c++) {
+            const [min, max] = ranges[c];
+            const nums = [];
+            while (nums.length < 5) {
+                const n = Math.floor(Math.random() * (max - min + 1)) + min;
+                if (!nums.includes(n)) nums.push(n);
+            }
+            cols[letters[c]] = nums;
+        }
+        // Build 5x5 grid row by row
+        const grid = [];
+        for (let r = 0; r < 5; r++) {
+            const row = [];
+            for (let c = 0; c < 5; c++) {
+                row.push(cols[letters[c]][r]);
+            }
+            grid.push(row);
+        }
+        grid[2][2] = 'FREE'; // center is free
+        return grid;
+    }
+
+    // Generate all 75 possible balls
+    function generateBalls() {
+        const balls = [];
+        const letters = ['B','I','N','G','O'];
+        const ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
+        for (let c = 0; c < 5; c++) {
+            for (let n = ranges[c][0]; n <= ranges[c][1]; n++) {
+                balls.push({ letter: letters[c], number: n, display: letters[c] + n });
+            }
+        }
+        // Shuffle
+        for (let i = balls.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [balls[i], balls[j]] = [balls[j], balls[i]];
+        }
+        return balls;
+    }
+
+    let card, marked, balls, ballIndex, calledNumbers, callInterval, wins, currentBall, gameActive;
+
+    function reset() {
+        card = generateCard();
+        marked = Array.from({length:5}, () => Array(5).fill(false));
+        marked[2][2] = true; // FREE is always marked
+        balls = generateBalls();
+        ballIndex = 0;
+        calledNumbers = new Set();
+        wins = 0;
+        currentBall = null;
+        gameActive = false;
+        if (callInterval) clearInterval(callInterval);
+        callInterval = null;
+        render();
+    }
+
+    function checkWin() {
+        // Check rows
+        for (let r = 0; r < 5; r++) {
+            if (marked[r].every(v => v)) return true;
+        }
+        // Check columns
+        for (let c = 0; c < 5; c++) {
+            if (marked.every(row => row[c])) return true;
+        }
+        // Diagonals
+        if ([0,1,2,3,4].every(i => marked[i][i])) return true;
+        if ([0,1,2,3,4].every(i => marked[i][4-i])) return true;
+        return false;
+    }
+
+    function getLetter(num) {
+        if (num <= 15) return 'B';
+        if (num <= 30) return 'I';
+        if (num <= 45) return 'N';
+        if (num <= 60) return 'G';
+        return 'O';
+    }
+
+    function callNext() {
+        if (ballIndex >= balls.length) {
+            clearInterval(callInterval);
+            callInterval = null;
+            gameActive = false;
+            render();
+            return;
+        }
+        currentBall = balls[ballIndex];
+        calledNumbers.add(currentBall.number);
+        ballIndex++;
+
+        // Auto mark FREE is already done
+        render();
+    }
+
+    function markCell(r, c) {
+        if (!gameActive) return;
+        if (marked[r][c]) return;
+        const val = card[r][c];
+        if (val === 'FREE') return;
+        if (!calledNumbers.has(val)) return; // can only mark called numbers
+
+        marked[r][c] = true;
+        render();
+
+        if (checkWin()) {
+            gameActive = false;
+            clearInterval(callInterval);
+            callInterval = null;
+            wins++;
+            const isNew = setHigh('bingo', wins);
+            setTimeout(() => {
+                render();
+                // Show win overlay
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;border-radius:12px;';
+                overlay.innerHTML = `
+                    <div style="font-size:3rem;margin-bottom:10px;">🎉</div>
+                    <div style="font-size:2rem;font-weight:bold;color:#00ff88;font-family:Orbitron,sans-serif;">BINGO!</div>
+                    <div style="color:#ccc;margin:10px 0;">Wins: ${wins}${isNew ? ' ⭐ New Record!' : ''}</div>
+                    <div style="color:#888;margin-bottom:15px;">High Score: ${getHigh('bingo')}</div>
+                    <button style="padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#00ff88,#00d4ff);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;" onclick="this.parentElement.remove()">New Game</button>
+                `;
+                overlay.querySelector('button').onclick = () => {
+                    overlay.remove();
+                    reset();
+                    gameActive = true;
+                    callInterval = setInterval(callNext, 3000);
+                };
+                gameArea.style.position = 'relative';
+                gameArea.appendChild(overlay);
+            }, 200);
+        }
+    }
+
+    function render() {
+        const letters = ['B','I','N','G','O'];
+        const ballDisplay = currentBall ? `<div style="font-size:2.5rem;font-weight:bold;color:#00ff88;font-family:Orbitron,sans-serif;text-shadow:0 0 20px #00ff88;">${currentBall.display}</div>` : `<div style="font-size:1.2rem;color:#888;">Press Start to play!</div>`;
+        const calledCount = ballIndex;
+
+        let gridHTML = '<table style="border-collapse:collapse;margin:0 auto;">';
+        // Header row
+        gridHTML += '<tr>';
+        for (const l of letters) {
+            gridHTML += `<th style="width:55px;height:40px;text-align:center;font-family:Orbitron,sans-serif;font-size:1.3rem;color:#00d4ff;text-shadow:0 0 10px #00d4ff;">${l}</th>`;
+        }
+        gridHTML += '</tr>';
+        // Grid rows
+        for (let r = 0; r < 5; r++) {
+            gridHTML += '<tr>';
+            for (let c = 0; c < 5; c++) {
+                const val = card[r][c];
+                const isMarked = marked[r][c];
+                const isFree = val === 'FREE';
+                const isCalled = val !== 'FREE' && calledNumbers.has(val);
+                let bg = '#1a1a2e';
+                let color = '#fff';
+                let border = '2px solid #333';
+                let cursor = 'default';
+                let glow = '';
+
+                if (isMarked) {
+                    bg = isFree ? '#b44aff' : '#00ff88';
+                    color = '#000';
+                    glow = isMarked && !isFree ? 'box-shadow:0 0 15px #00ff88;' : 'box-shadow:0 0 10px #b44aff;';
+                } else if (isCalled) {
+                    bg = '#1a3a2e';
+                    border = '2px solid #00ff88';
+                    cursor = 'pointer';
+                    glow = 'box-shadow:0 0 8px rgba(0,255,136,0.3);';
+                }
+
+                const display = isFree ? '⭐' : val;
+                gridHTML += `<td onclick="window._bingoMark(${r},${c})" style="width:55px;height:55px;text-align:center;font-size:${isFree ? '1.5rem' : '1.1rem'};font-weight:bold;background:${bg};color:${color};border:${border};border-radius:8px;cursor:${cursor};font-family:Rajdhani,sans-serif;transition:all 0.2s;${glow}">${display}</td>`;
+            }
+            gridHTML += '</tr>';
+        }
+        gridHTML += '</table>';
+
+        // Recent calls (last 5)
+        const recent = [];
+        for (let i = Math.max(0, ballIndex - 5); i < ballIndex; i++) {
+            recent.push(balls[i].display);
+        }
+        const recentHTML = recent.length > 0 ? `<div style="margin-top:12px;color:#888;font-size:0.9rem;">Recent: ${recent.map(r => `<span style="color:#00d4ff;margin:0 4px;">${r}</span>`).join(' ')}</div>` : '';
+
+        gameArea.innerHTML = `
+            <div style="text-align:center;padding:10px;">
+                <div style="margin-bottom:15px;">
+                    <div style="color:#888;font-size:0.8rem;margin-bottom:5px;">CALLED NUMBER</div>
+                    ${ballDisplay}
+                    <div style="color:#666;font-size:0.8rem;margin-top:5px;">${calledCount} / 75 balls called</div>
+                </div>
+                ${gridHTML}
+                ${recentHTML}
+                ${!gameActive ? `<button id="bingo-start" style="margin-top:15px;padding:12px 35px;font-size:1.1rem;background:linear-gradient(135deg,#00ff88,#00d4ff);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">${ballIndex > 0 ? '🔄 New Game' : '▶ Start'}</button>` : `<div style="margin-top:12px;color:#b44aff;font-size:0.9rem;">Click numbers on your card when they're called!</div>`}
+                <div style="margin-top:8px;color:#666;font-size:0.8rem;">Wins: ${wins} | Best: ${getHigh('bingo')}</div>
+            </div>
+        `;
+
+        // Wire up start button
+        const startBtn = document.getElementById('bingo-start');
+        if (startBtn) {
+            startBtn.onclick = () => {
+                if (ballIndex > 0) reset(); // new game
+                gameActive = true;
+                callInterval = setInterval(callNext, 3000);
+                callNext(); // call first ball immediately
+            };
+        }
+    }
+
+    // Expose mark function globally for onclick
+    window._bingoMark = markCell;
+
+    gameScoreDisplay.textContent = '';
+    reset();
+
+    gameCleanup = () => {
+        if (callInterval) clearInterval(callInterval);
+        delete window._bingoMark;
     };
 }
