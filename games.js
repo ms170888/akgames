@@ -10322,11 +10322,19 @@ function initFootball() {
 
 // ==================== ESCAPE THE GRANNY ====================
 function initGranny() {
-    gameTitle.textContent = 'ðŸ‘» Escape the Granny';
+    gameTitle.textContent = 'Escape the Granny';
+
+    // Fullscreen support
+    function goFullscreen() {
+        const el = document.getElementById('game-container') || document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    }
     
     const canvas = document.createElement('canvas');
     canvas.className = 'game-canvas';
-    canvas.style.cssText = 'background:#000;touch-action:none;max-width:100%;';
+    canvas.style.cssText = 'background:#000;touch-action:none;width:100%;height:100vh;';
     
     const info = document.createElement('div');
     info.className = 'game-info';
@@ -11267,6 +11275,7 @@ function initGranny() {
         const disp = document.getElementById('granny-keys-display');
         if (disp) disp.textContent = 'Keys: 0/3';
         playAmbient();
+        goFullscreen();
     }
     
     function update() {
