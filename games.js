@@ -83,6 +83,7 @@ function launchGame(name) {
         case 'minicraft': initMiniCraft(); break;
         case 'forest99': initForest99(); break;
         case 'brookhaven': initBrookhaven(); break;
+        case 'gorillatag': initGorillaTag(); break;
 
     }
 }
@@ -4323,4 +4324,451 @@ function initBrookhaven() {
     gameScoreDisplay.textContent='';
 
     gameCleanup=()=>{cancelAnimationFrame(frameId);document.removeEventListener('keydown',onKey);};
+}
+
+// ==================== GORILLA TAG ====================
+function initGorillaTag() {
+    gameTitle.textContent = '🦍 Gorilla Tag';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 380;
+    canvas.height = 380;
+    canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #4CAF50;border-radius:12px;background:#1a2e1a;touch-action:none;';
+
+    const startBtn = document.createElement('button');
+    startBtn.textContent = '▶ Start!';
+    startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#4CAF50,#8BC34A);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;color:#fff;';
+
+    const dpad = document.createElement('div');
+    dpad.style.cssText = 'display:grid;grid-template-columns:45px 45px 45px;grid-template-rows:45px 45px;gap:3px;justify-content:center;margin-top:8px;';
+    dpad.innerHTML = `
+        <div></div>
+        <button id="gt-up" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">⬆</button>
+        <div></div>
+        <button id="gt-left" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">⬅</button>
+        <button id="gt-jump" style="font-size:0.8rem;background:#1a2e1a;border:2px solid #FF9800;border-radius:8px;color:#FF9800;cursor:pointer;">Jump</button>
+        <button id="gt-right" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">➡</button>
+        <div></div>
+        <button id="gt-down" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">⬇</button>
+        <div></div>
+    `;
+
+    const info = document.createElement('div');
+    info.style.cssText = 'text-align:center;color:#555;font-size:0.7rem;margin-top:6px;';
+    info.textContent = 'WASD: move | SPACE: jump/climb | Tag the gorillas or escape!';
+
+    gameArea.appendChild(canvas);
+    gameArea.appendChild(startBtn);
+    gameArea.appendChild(dpad);
+    gameArea.appendChild(info);
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const gravity = 0.4;
+    const groundY = H - 40;
+
+    // Platforms / trees to climb
+    let platforms, player, gorillas, tagged, score, timer, running, frameId, timerInterval;
+    let keys = {left:false, right:false, up:false, down:false, jump:false};
+    let isIT = true; // player is "it" first
+    let round = 0;
+
+    function generateLevel() {
+        platforms = [
+            {x:0, y:groundY, w:W, h:H-groundY, color:'#2E7D32'}, // ground
+        ];
+        // Trees (vertical platforms to climb)
+        const treePositions = [60, 130, 200, 270, 340];
+        for (const tx of treePositions) {
+            // Trunk
+            platforms.push({x:tx-8, y:groundY-80-Math.random()*40, w:16, h:80+Math.random()*40, color:'#5D4037', isTree:true});
+            // Branches
+            platforms.push({x:tx-30, y:groundY-70-Math.random()*30, w:60, h:10, color:'#4CAF50'});
+            if (Math.random()>0.4) platforms.push({x:tx-25, y:groundY-120-Math.random()*20, w:50, h:10, color:'#388E3C'});
+        }
+        // Floating platforms
+        for (let i=0; i<5; i++) {
+            platforms.push({x:30+Math.random()*(W-100), y:100+Math.random()*100, w:50+Math.random()*30, h:10, color:'#795548'});
+        }
+        // High platform
+        platforms.push({x:W/2-40, y:50, w:80, h:10, color:'#FF9800'});
+    }
+
+    function spawnGorillas() {
+        gorillas = [];
+        const num = Math.min(3 + round, 8);
+        const colors = ['#FF5722','#E91E63','#9C27B0','#3F51B5','#00BCD4','#FFEB3B','#FF9800','#795548'];
+        for (let i=0; i<num; i++) {
+            gorillas.push({
+                x: 30 + Math.random()*(W-60),
+                y: groundY - 25,
+                vx: 0, vy: 0,
+                w: 22, h: 22,
+                grounded: false,
+                color: colors[i%colors.length],
+                tagged: false,
+                moveTimer: 0,
+                jumpTimer: 0,
+                dir: Math.random()<0.5?-1:1
+            });
+        }
+        tagged = 0;
+    }
+
+    function reset() {
+        round = 0;
+        score = 0;
+        running = false;
+    }
+
+    function startRound() {
+        generateLevel();
+        spawnGorillas();
+        player = {x:W/2, y:groundY-25, vx:0, vy:0, w:22, h:22, grounded:false};
+        timer = 30 + round*5;
+        tagged = 0;
+        isIT = round%2===0; // alternate who's it
+        running = true;
+
+        if(timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(()=>{
+            if(!running) return;
+            timer--;
+            if(timer<=0){
+                clearInterval(timerInterval); timerInterval=null;
+                running=false;
+                if(isIT) {
+                    showGameOver('Time\'s up! Tagged '+tagged+'/'+gorillas.length, score, 'gorillatag', ()=>{reset();});
+                } else {
+                    score += 100; // survived!
+                    round++;
+                    startRound();
+                }
+            }
+        },1000);
+
+        startBtn.textContent = isIT ? '🦍 You\'re IT! Tag them!' : '🏃 RUN! Don\'t get tagged!';
+    }
+
+    function resolveCollisions(obj) {
+        obj.grounded = false;
+        for (const p of platforms) {
+            if (p.isTree) {
+                // Tree climbing: can grab sides
+                if (obj.x+obj.w>p.x && obj.x<p.x+p.w && obj.y+obj.h>p.y && obj.y<p.y+p.h) {
+                    if (keys.up || obj.climbIntent) {
+                        obj.vy = -2.5;
+                        obj.grounded = true;
+                    }
+                }
+                continue;
+            }
+            // Normal platform: land on top
+            if (obj.x+obj.w > p.x && obj.x < p.x+p.w) {
+                if (obj.vy >= 0 && obj.y+obj.h >= p.y && obj.y+obj.h <= p.y+p.h+obj.vy+2) {
+                    obj.y = p.y - obj.h;
+                    obj.vy = 0;
+                    obj.grounded = true;
+                }
+            }
+        }
+    }
+
+    function step() {
+        if (!running) return;
+
+        // Player physics
+        if (keys.left) player.vx = -4;
+        else if (keys.right) player.vx = 4;
+        else player.vx *= 0.8;
+
+        if (keys.jump && player.grounded) {
+            player.vy = -9;
+            player.grounded = false;
+        }
+
+        player.vy += gravity;
+        player.x += player.vx;
+        player.y += player.vy;
+
+        // Boundaries
+        if (player.x<0) {player.x=0;player.vx=0;}
+        if (player.x+player.w>W) {player.x=W-player.w;player.vx=0;}
+        if (player.y>H+50) {player.y=groundY-50;player.vy=0;} // respawn if fall off
+
+        resolveCollisions(player);
+
+        // Gorilla AI
+        for (const g of gorillas) {
+            if (g.tagged) continue;
+
+            g.moveTimer--;
+            g.jumpTimer--;
+
+            const dx = player.x - g.x;
+            const dy = player.y - g.y;
+            const dist = Math.sqrt(dx*dx+dy*dy);
+
+            if (isIT) {
+                // Gorillas RUN AWAY
+                if (dist < 150) {
+                    g.vx = dx > 0 ? -3 : 3;
+                    if (g.jumpTimer <= 0 && g.grounded && Math.random()<0.15) {
+                        g.vy = -8 - Math.random()*3;
+                        g.grounded = false;
+                        g.jumpTimer = 20;
+                    }
+                } else if (g.moveTimer <= 0) {
+                    g.dir = Math.random()<0.5?-1:1;
+                    g.vx = g.dir * (1+Math.random()*2);
+                    g.moveTimer = 20+Math.floor(Math.random()*30);
+                    if (g.grounded && Math.random()<0.2) {
+                        g.vy = -7;
+                        g.grounded = false;
+                    }
+                }
+            } else {
+                // Gorillas CHASE player
+                if (dist < 250) {
+                    g.vx = dx > 0 ? 2.5 : -2.5;
+                    if (g.jumpTimer<=0 && g.grounded && (dy<-20 || Math.random()<0.1)) {
+                        g.vy = -8;
+                        g.grounded = false;
+                        g.jumpTimer = 15;
+                    }
+                } else if (g.moveTimer<=0) {
+                    g.vx = (Math.random()-0.5)*3;
+                    g.moveTimer = 30;
+                }
+            }
+
+            g.vy += gravity;
+            g.x += g.vx;
+            g.y += g.vy;
+            g.vx *= 0.9;
+
+            if(g.x<0){g.x=0;g.vx*=-1;}
+            if(g.x+g.w>W){g.x=W-g.w;g.vx*=-1;}
+            if(g.y>H+50){g.y=groundY-50;g.vy=0;}
+
+            g.climbIntent = isIT ? (dist<100) : true;
+            resolveCollisions(g);
+
+            // Tag check
+            if (Math.abs(player.x-g.x)<(player.w+g.w)/2+5 && Math.abs(player.y-g.y)<(player.h+g.h)/2+5) {
+                if (isIT && !g.tagged) {
+                    g.tagged = true;
+                    tagged++;
+                    score += 30 + round*10;
+                    if (tagged >= gorillas.length) {
+                        clearInterval(timerInterval); timerInterval=null;
+                        score += timer*5;
+                        running = false;
+                        setTimeout(()=>{round++;startRound();},800);
+                        return;
+                    }
+                } else if (!isIT) {
+                    // Player got tagged!
+                    clearInterval(timerInterval); timerInterval=null;
+                    running = false;
+                    showGameOver('You got tagged!', score, 'gorillatag', ()=>{reset();});
+                    return;
+                }
+            }
+        }
+
+        drawFrame();
+        frameId = requestAnimationFrame(step);
+    }
+
+    function drawFrame() {
+        // Background
+        const grad = ctx.createLinearGradient(0,0,0,H);
+        grad.addColorStop(0,'#1a3a1a');
+        grad.addColorStop(1,'#0a1a0a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,W,H);
+
+        // Platforms
+        for (const p of platforms) {
+            ctx.fillStyle = p.color;
+            if (p.isTree) {
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                // Bark texture
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                for (let ty=p.y;ty<p.y+p.h;ty+=8) ctx.fillRect(p.x+2,ty,p.w-4,2);
+            } else {
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                if (p.y < groundY) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.fillRect(p.x, p.y, p.w, 3);
+                }
+            }
+        }
+
+        // Vines
+        ctx.strokeStyle = '#2E7D32';
+        ctx.lineWidth = 2;
+        [90,180,310].forEach(vx=>{
+            ctx.beginPath();
+            ctx.moveTo(vx,40);
+            for(let vy=40;vy<groundY;vy+=10) ctx.lineTo(vx+Math.sin(vy*0.1)*8,vy);
+            ctx.stroke();
+        });
+
+        // Gorillas
+        for (const g of gorillas) {
+            if (g.tagged) {
+                ctx.globalAlpha = 0.3;
+            }
+            // Body
+            ctx.fillStyle = g.color;
+            ctx.beginPath();
+            ctx.ellipse(g.x+g.w/2, g.y+g.h/2, g.w/2, g.h/2, 0, 0, Math.PI*2);
+            ctx.fill();
+            // Face
+            ctx.fillStyle = '#333';
+            ctx.fillRect(g.x+5, g.y+6, 4, 4);
+            ctx.fillRect(g.x+g.w-9, g.y+6, 4, 4);
+            // Mouth
+            ctx.fillStyle = g.tagged ? '#666' : '#fff';
+            ctx.fillRect(g.x+7, g.y+13, g.w-14, 3);
+            // Arms
+            ctx.fillStyle = g.color;
+            ctx.fillRect(g.x-5, g.y+5, 6, 12);
+            ctx.fillRect(g.x+g.w-1, g.y+5, 6, 12);
+
+            if (g.tagged) {
+                ctx.globalAlpha = 1;
+                ctx.font = '12px serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('✅', g.x+g.w/2, g.y-5);
+            }
+
+            // Exclamation when close
+            if (!g.tagged) {
+                const dist = Math.sqrt((player.x-g.x)**2+(player.y-g.y)**2);
+                if (dist < 60) {
+                    ctx.font = '14px serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(isIT?'😱':'😤', g.x+g.w/2, g.y-10);
+                }
+            }
+        }
+
+        // Player gorilla
+        ctx.fillStyle = isIT ? '#f44336' : '#4CAF50';
+        ctx.beginPath();
+        ctx.ellipse(player.x+player.w/2, player.y+player.h/2, player.w/2+2, player.h/2+2, 0, 0, Math.PI*2);
+        ctx.fill();
+        // Glow
+        ctx.shadowColor = isIT ? '#f44336' : '#4CAF50';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        // Face
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(player.x+5, player.y+5, 5, 5);
+        ctx.fillRect(player.x+player.w-10, player.y+5, 5, 5);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(player.x+7, player.y+7, 2, 2);
+        ctx.fillRect(player.x+player.w-8, player.y+7, 2, 2);
+        // Mouth
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(player.x+7, player.y+14, player.w-14, 3);
+        // Arms
+        ctx.fillStyle = isIT ? '#d32f2f' : '#388E3C';
+        ctx.fillRect(player.x-6, player.y+4, 7, 14);
+        ctx.fillRect(player.x+player.w-1, player.y+4, 7, 14);
+        // Label
+        ctx.font = 'bold 9px Orbitron';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(isIT?'IT':'YOU', player.x+player.w/2, player.y-6);
+
+        // HUD
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(0,0,W,28);
+        ctx.font = 'bold 11px Orbitron, sans-serif';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#FF9800';
+        ctx.fillText('Round '+(round+1), 6, 7);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = timer<=5?'#f44336':'#00d4ff';
+        ctx.fillText('⏱ '+timer+'s', W/2, 7);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#4CAF50';
+        if(isIT) ctx.fillText('Tagged: '+tagged+'/'+gorillas.length, W-6, 7);
+        else ctx.fillText('Score: '+score, W-6, 7);
+
+        // Mode indicator
+        ctx.fillStyle = isIT ? 'rgba(255,0,0,0.1)' : 'rgba(0,255,0,0.1)';
+        ctx.fillRect(0, H-20, W, 20);
+        ctx.font = 'bold 10px Orbitron';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = isIT ? '#f44336' : '#4CAF50';
+        ctx.fillText(isIT ? '🦍 YOU\'RE IT! Tag them all!' : '🏃 ESCAPE! Don\'t get tagged!', W/2, H-10);
+    }
+
+    function onKey(e) {
+        const down = e.type === 'keydown';
+        switch(e.key) {
+            case 'ArrowLeft':case 'a':case 'A': keys.left=down; break;
+            case 'ArrowRight':case 'd':case 'D': keys.right=down; break;
+            case 'ArrowUp':case 'w':case 'W': keys.up=down; break;
+            case 'ArrowDown':case 's':case 'S': keys.down=down; break;
+            case ' ': e.preventDefault(); keys.jump=down; break;
+        }
+    }
+
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('keyup', onKey);
+
+    // Mobile controls
+    function holdBtn(id, key) {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.addEventListener('touchstart', (e)=>{e.preventDefault();keys[key]=true;});
+        btn.addEventListener('touchend', ()=>{keys[key]=false;});
+        btn.addEventListener('mousedown', ()=>{keys[key]=true;});
+        btn.addEventListener('mouseup', ()=>{keys[key]=false;});
+        btn.addEventListener('mouseleave', ()=>{keys[key]=false;});
+    }
+    holdBtn('gt-left','left'); holdBtn('gt-right','right');
+    holdBtn('gt-up','up'); holdBtn('gt-down','down');
+    holdBtn('gt-jump','jump');
+
+    startBtn.onclick = () => {
+        if (running) return;
+        reset();
+        startRound();
+        frameId = requestAnimationFrame(step);
+    };
+
+    reset();
+
+    // Initial screen
+    ctx.fillStyle = '#1a3a1a';
+    ctx.fillRect(0,0,W,H);
+    ctx.font = 'bold 22px Orbitron, sans-serif';
+    ctx.fillStyle = '#4CAF50';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🦍 Gorilla Tag', W/2, H/2-30);
+    ctx.font = '12px Rajdhani, sans-serif';
+    ctx.fillStyle = '#888';
+    ctx.fillText('Swing through trees, tag gorillas!', W/2, H/2);
+    ctx.fillText('SPACE to jump | Climb trees!', W/2, H/2+20);
+
+    gameScoreDisplay.textContent = 'Best: ' + getHigh('gorillatag');
+
+    gameCleanup = () => {
+        running = false;
+        cancelAnimationFrame(frameId);
+        if(timerInterval) clearInterval(timerInterval);
+        document.removeEventListener('keydown', onKey);
+        document.removeEventListener('keyup', onKey);
+    };
 }
