@@ -85,6 +85,7 @@ function launchGame(name) {
         case 'brookhaven': initBrookhaven(); break;
         case 'gorillatag': initGorillaTag(); break;
         case 'fnaf': initFNAF(); break;
+        case 'scaryshawarma': initScaryShawarma(); break;
 
     }
 }
@@ -5109,5 +5110,445 @@ function initFNAF() {
         gameActive = false;
         clearIntervals();
         delete window._fnafCam;
+    };
+}
+
+// ==================== SCARY SHAWARMA ====================
+function initScaryShawarma() {
+    gameTitle.textContent = '🌯 Scary Shawarma';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 360;
+    canvas.height = 400;
+    canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #FF6F00;border-radius:12px;background:#1a0a0a;touch-action:none;cursor:pointer;';
+
+    const startBtn = document.createElement('button');
+    startBtn.textContent = '▶ Open the Kitchen!';
+    startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#FF6F00,#f44336);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;color:#fff;';
+
+    const dpad = document.createElement('div');
+    dpad.style.cssText = 'display:grid;grid-template-columns:45px 45px 45px;grid-template-rows:45px 45px;gap:3px;justify-content:center;margin-top:8px;';
+    dpad.innerHTML = `
+        <div></div>
+        <button id="ss-up" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">⬆</button>
+        <div></div>
+        <button id="ss-left" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">⬅</button>
+        <button id="ss-grab" style="font-size:0.7rem;background:#1a0a0a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">Grab</button>
+        <button id="ss-right" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">➡</button>
+        <div></div>
+        <button id="ss-down" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">⬇</button>
+        <div></div>
+    `;
+
+    const info = document.createElement('div');
+    info.style.cssText = 'text-align:center;color:#555;font-size:0.7rem;margin-top:6px;';
+    info.textContent = 'WASD: move | E: grab ingredients | Collect ingredients, make shawarmas, avoid the haunted food!';
+
+    gameArea.appendChild(canvas);
+    gameArea.appendChild(startBtn);
+    gameArea.appendChild(dpad);
+    gameArea.appendChild(info);
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const groundY = H - 30;
+
+    // Game state
+    let player, score, level, health, ingredients, hauntedFood, shawarmasMade;
+    let timer, timerInterval, running, frameId;
+    let collectedIngredients, recipe, msgText, msgTimer;
+    let kitchenItems, spookEffects;
+
+    const INGREDIENTS = [
+        {name:'Meat', emoji:'🥩', color:'#C62828'},
+        {name:'Bread', emoji:'🫓', color:'#D7CCC8'},
+        {name:'Lettuce', emoji:'🥬', color:'#4CAF50'},
+        {name:'Tomato', emoji:'🍅', color:'#f44336'},
+        {name:'Onion', emoji:'🧅', color:'#E1BEE7'},
+        {name:'Sauce', emoji:'🫙', color:'#FF8F00'},
+        {name:'Cheese', emoji:'🧀', color:'#FFC107'},
+        {name:'Pepper', emoji:'🌶️', color:'#D32F2F'}
+    ];
+
+    const HAUNTED = [
+        {name:'Ghost Pepper', emoji:'👻🌶️', speed:2, damage:15},
+        {name:'Zombie Meat', emoji:'🧟🥩', speed:1.5, damage:20},
+        {name:'Evil Tomato', emoji:'😈🍅', speed:2.5, damage:10},
+        {name:'Cursed Onion', emoji:'💀🧅', speed:1.8, damage:25},
+        {name:'Demon Cheese', emoji:'🔥🧀', speed:3, damage:12},
+        {name:'Witch Sauce', emoji:'🧙‍♀️🫙', speed:2.2, damage:18}
+    ];
+
+    const SCARY_MSGS = [
+        'THE SHAWARMA DEMANDS A SACRIFICE! 🌯💀',
+        'WHO TURNED OFF THE LIGHTS?! 😱',
+        'The meat... it MOVED! 🥩👀',
+        'Something is watching from the fridge... 🧊👁️',
+        'The sauce is ALIVE! 🫙😈',
+        'DO NOT OPEN THE OVEN! 🔥💀',
+        'The lettuce whispers your name... 🥬🫣',
+        'BEHIND YOU! ...just kidding 😂'
+    ];
+
+    function reset() {
+        player = {x: W/2, y: H/2, size: 18};
+        score = 0;
+        level = 1;
+        health = 100;
+        shawarmasMade = 0;
+        collectedIngredients = [];
+        msgText = '';
+        msgTimer = 0;
+        spookEffects = [];
+        running = false;
+    }
+
+    function startLevel() {
+        // Recipe: random 3-4 ingredients needed
+        const numNeeded = Math.min(3 + Math.floor(level/3), 5);
+        const shuffled = [...INGREDIENTS].sort(()=>Math.random()-0.5);
+        recipe = shuffled.slice(0, numNeeded);
+        collectedIngredients = [];
+
+        // Spawn ingredients on the map
+        ingredients = [];
+        for (let i = 0; i < recipe.length * 2 + 3; i++) {
+            const ing = INGREDIENTS[Math.floor(Math.random()*INGREDIENTS.length)];
+            ingredients.push({
+                x: 30 + Math.random()*(W-60),
+                y: 50 + Math.random()*(H-120),
+                ...ing,
+                bobOffset: Math.random()*Math.PI*2
+            });
+        }
+
+        // Spawn haunted food
+        hauntedFood = [];
+        const numHaunted = Math.min(2 + Math.floor(level/2), 7);
+        for (let i = 0; i < numHaunted; i++) {
+            const h = HAUNTED[Math.floor(Math.random()*HAUNTED.length)];
+            hauntedFood.push({
+                x: Math.random() < 0.5 ? -20 : W + 20,
+                y: 50 + Math.random()*(H-120),
+                ...h,
+                speed: h.speed + level * 0.2,
+                dir: Math.random()*Math.PI*2,
+                changeTimer: 0
+            });
+        }
+
+        timer = 30 + level * 5;
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(()=>{
+            if (!running) return;
+            timer--;
+            if (timer <= 10 && Math.random()<0.3) {
+                spookEffects.push({type:'msg', text:SCARY_MSGS[Math.floor(Math.random()*SCARY_MSGS.length)], timer:60});
+            }
+            if (timer <= 0) {
+                clearInterval(timerInterval); timerInterval = null;
+                running = false;
+                showGameOver('Time\'s up! Kitchen closed! 🌯💀', score, 'scaryshawarma', ()=>{reset();});
+            }
+        }, 1000);
+
+        running = true;
+        showMsg('🌯 Night ' + level + ': Make a shawarma! Collect: ' + recipe.map(r=>r.emoji).join(' '));
+    }
+
+    function showMsg(t) { msgText = t; msgTimer = 120; }
+
+    function grab() {
+        if (!running) return;
+        // Check nearby ingredients
+        for (let i = ingredients.length - 1; i >= 0; i--) {
+            const ing = ingredients[i];
+            const dist = Math.sqrt((player.x - ing.x)**2 + (player.y - ing.y)**2);
+            if (dist < 30) {
+                collectedIngredients.push(ing);
+                ingredients.splice(i, 1);
+                showMsg('Got ' + ing.emoji + ' ' + ing.name + '!');
+
+                // Check if we have all recipe ingredients
+                const needed = recipe.map(r => r.name);
+                const have = collectedIngredients.map(c => c.name);
+                const complete = needed.every(n => have.includes(n));
+
+                if (complete) {
+                    // SHAWARMA MADE!
+                    shawarmasMade++;
+                    score += 100 + level * 20;
+                    health = Math.min(100, health + 10);
+
+                    spookEffects.push({type:'shawarma', timer:60});
+                    showMsg('🌯 SHAWARMA COMPLETE! +' + (100 + level*20) + ' points! 🎉');
+
+                    // Next level after delay
+                    setTimeout(() => {
+                        if (running) { level++; startLevel(); }
+                    }, 1500);
+                }
+                return;
+            }
+        }
+    }
+
+    function movePlayer(dx, dy) {
+        if (!running) return;
+        player.x = Math.max(15, Math.min(W-15, player.x + dx * 4));
+        player.y = Math.max(40, Math.min(H-45, player.y + dy * 4));
+    }
+
+    function step() {
+        if (!running) { if (running !== false) frameId = requestAnimationFrame(step); return; }
+
+        // Move haunted food toward player
+        for (const h of hauntedFood) {
+            h.changeTimer--;
+            const dx = player.x - h.x;
+            const dy = player.y - h.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < 150 || h.changeTimer <= 0) {
+                h.dir = Math.atan2(dy, dx);
+                h.changeTimer = 30 + Math.random()*20;
+            }
+
+            h.x += Math.cos(h.dir) * h.speed;
+            h.y += Math.sin(h.dir) * h.speed;
+
+            // Bounce off walls
+            if (h.x < 10 || h.x > W-10) h.dir = Math.PI - h.dir;
+            if (h.y < 40 || h.y > H-40) h.dir = -h.dir;
+            h.x = Math.max(10, Math.min(W-10, h.x));
+            h.y = Math.max(40, Math.min(H-40, h.y));
+
+            // Hit player
+            if (dist < 25) {
+                health -= h.damage * 0.1;
+                spookEffects.push({type:'hit', timer:15});
+                // Push haunted away
+                h.x += (h.x - player.x) * 0.5;
+                h.y += (h.y - player.y) * 0.5;
+                h.dir += Math.PI;
+            }
+        }
+
+        if (health <= 0) {
+            health = 0;
+            running = false;
+            clearInterval(timerInterval);
+            showGameOver('The haunted food got you! 👻🌯', score, 'scaryshawarma', ()=>{reset();});
+            return;
+        }
+
+        // Update spook effects
+        for (let i = spookEffects.length-1; i >= 0; i--) {
+            spookEffects[i].timer--;
+            if (spookEffects[i].timer <= 0) spookEffects.splice(i, 1);
+        }
+
+        drawFrame();
+        frameId = requestAnimationFrame(step);
+    }
+
+    function drawFrame() {
+        // Kitchen background
+        const isSpooky = timer <= 10 || spookEffects.some(e => e.type === 'hit');
+        ctx.fillStyle = isSpooky ? '#1a0000' : '#1a1a0a';
+        ctx.fillRect(0, 0, W, H);
+
+        // Kitchen tiles
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+        for (let x = 0; x < W; x += 30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+        for (let y = 0; y < H; y += 30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+        // Kitchen counter (bottom)
+        ctx.fillStyle = '#3E2723';
+        ctx.fillRect(0, H-30, W, 30);
+        ctx.fillStyle = '#5D4037';
+        ctx.fillRect(0, H-32, W, 4);
+
+        // Flickering light effect
+        if (isSpooky && Math.random() < 0.3) {
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        // Ingredients
+        const time = Date.now() / 1000;
+        for (const ing of ingredients) {
+            const bob = Math.sin(time * 2 + ing.bobOffset) * 3;
+            ctx.font = '22px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(ing.emoji, ing.x, ing.y + bob);
+
+            // Glow if it's in the recipe
+            if (recipe.some(r => r.name === ing.name)) {
+                ctx.beginPath();
+                ctx.arc(ing.x, ing.y + bob, 16, 0, Math.PI*2);
+                ctx.strokeStyle = 'rgba(0,255,136,0.3)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        // Haunted food
+        for (const h of hauntedFood) {
+            // Shadow/trail
+            ctx.globalAlpha = 0.3;
+            ctx.font = '20px serif';
+            ctx.fillText(h.emoji, h.x-3, h.y+3);
+            ctx.globalAlpha = 1;
+            // Main
+            ctx.font = '24px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(h.emoji, h.x, h.y);
+            // Evil glow
+            ctx.beginPath();
+            ctx.arc(h.x, h.y, 18, 0, Math.PI*2);
+            ctx.strokeStyle = 'rgba(255,0,0,0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // Player (chef)
+        ctx.font = '28px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🧑‍🍳', player.x, player.y);
+        // Glow
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, 20, 0, Math.PI*2);
+        ctx.strokeStyle = 'rgba(255,170,0,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Spook effects
+        for (const e of spookEffects) {
+            if (e.type === 'hit') {
+                ctx.fillStyle = `rgba(255,0,0,${e.timer/15*0.3})`;
+                ctx.fillRect(0, 0, W, H);
+            }
+            if (e.type === 'shawarma') {
+                ctx.font = `${60 + (60 - e.timer)}px serif`;
+                ctx.globalAlpha = e.timer / 60;
+                ctx.textAlign = 'center';
+                ctx.fillText('🌯', W/2, H/2);
+                ctx.globalAlpha = 1;
+            }
+            if (e.type === 'msg') {
+                ctx.globalAlpha = Math.min(1, e.timer/20);
+                ctx.fillStyle = 'rgba(100,0,0,0.8)';
+                ctx.fillRect(20, H/2-20, W-40, 40);
+                ctx.font = 'bold 11px Rajdhani';
+                ctx.fillStyle = '#ff4444';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(e.text, W/2, H/2);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // HUD
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, W, 35);
+
+        ctx.font = 'bold 10px Orbitron';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#FF6F00';
+        ctx.fillText('Night ' + level, 6, 4);
+        ctx.fillStyle = '#ffaa00';
+        ctx.fillText('🌯x' + shawarmasMade, 6, 18);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = timer <= 10 ? '#ff4444' : '#00d4ff';
+        ctx.fillText('⏱ ' + timer + 's', W/2, 4);
+
+        // Health bar
+        ctx.fillStyle = '#333';
+        ctx.fillRect(W/2-30, 19, 60, 10);
+        ctx.fillStyle = health > 50 ? '#4CAF50' : (health > 25 ? '#FF9800' : '#f44336');
+        ctx.fillRect(W/2-30, 19, 60*(health/100), 10);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#00ff88';
+        ctx.fillText('Score: ' + score, W-6, 4);
+
+        // Recipe display
+        ctx.fillStyle = '#888';
+        ctx.font = '9px Rajdhani';
+        ctx.textAlign = 'right';
+        const recipeStr = 'Need: ' + recipe.map(r => {
+            const have = collectedIngredients.some(c => c.name === r.name);
+            return (have ? '✅' : '⬜') + r.emoji;
+        }).join(' ');
+        ctx.fillText(recipeStr, W-6, 18);
+
+        // Message
+        if (msgTimer > 0) {
+            msgTimer--;
+            ctx.globalAlpha = Math.min(1, msgTimer/30);
+            ctx.fillStyle = 'rgba(0,0,0,0.85)';
+            ctx.fillRect(10, H-65, W-20, 28);
+            ctx.fillStyle = '#fff';
+            ctx.font = '11px Rajdhani';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(msgText, W/2, H-51);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    function onKey(e) {
+        switch(e.key) {
+            case 'ArrowLeft':case 'a':case 'A': movePlayer(-1,0); break;
+            case 'ArrowRight':case 'd':case 'D': movePlayer(1,0); break;
+            case 'ArrowUp':case 'w':case 'W': movePlayer(0,-1); break;
+            case 'ArrowDown':case 's':case 'S': movePlayer(0,1); break;
+            case 'e':case 'E':case ' ': grab(); break;
+        }
+    }
+    document.addEventListener('keydown', onKey);
+
+    const setupBtn=(id,fn)=>{const b=document.getElementById(id);if(b){b.addEventListener('click',fn);b.addEventListener('touchstart',(e)=>{e.preventDefault();fn();});}};
+    setupBtn('ss-up',()=>movePlayer(0,-1)); setupBtn('ss-down',()=>movePlayer(0,1));
+    setupBtn('ss-left',()=>movePlayer(-1,0)); setupBtn('ss-right',()=>movePlayer(1,0));
+    setupBtn('ss-grab',grab);
+
+    startBtn.onclick = () => {
+        if (running) return;
+        reset();
+        startLevel();
+        frameId = requestAnimationFrame(step);
+    };
+
+    reset();
+
+    // Initial screen
+    ctx.fillStyle = '#1a0a0a';
+    ctx.fillRect(0,0,W,H);
+    ctx.font = 'bold 20px Orbitron';
+    ctx.fillStyle = '#FF6F00';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🌯 Scary Shawarma', W/2, H/2-40);
+    ctx.font = '40px serif';
+    ctx.fillText('🧑‍🍳👻🌯', W/2, H/2+10);
+    ctx.font = '11px Rajdhani';
+    ctx.fillStyle = '#888';
+    ctx.fillText('Cook shawarmas in a haunted kitchen!', W/2, H/2+50);
+    ctx.fillText('Avoid the cursed ingredients! 😱', W/2, H/2+65);
+
+    gameScoreDisplay.textContent = 'Best: ' + getHigh('scaryshawarma');
+
+    gameCleanup = () => {
+        running = false;
+        cancelAnimationFrame(frameId);
+        if (timerInterval) clearInterval(timerInterval);
+        document.removeEventListener('keydown', onKey);
     };
 }
