@@ -84,6 +84,7 @@ function launchGame(name) {
         case 'forest99': initForest99(); break;
         case 'brookhaven': initBrookhaven(); break;
         case 'gorillatag': initGorillaTag(); break;
+        case 'fnaf': initFNAF(); break;
 
     }
 }
@@ -4770,5 +4771,343 @@ function initGorillaTag() {
         if(timerInterval) clearInterval(timerInterval);
         document.removeEventListener('keydown', onKey);
         document.removeEventListener('keyup', onKey);
+    };
+}
+
+// ==================== FNAF (Freddy's Pizzeria) ====================
+function initFNAF() {
+    gameTitle.textContent = '🐻 Freddy\'s Pizzeria';
+
+    gameArea.innerHTML = `
+        <div id="fnaf-game" style="max-width:380px;margin:0 auto;text-align:center;font-family:Rajdhani,sans-serif;">
+            <div id="fnaf-screen" style="background:#0a0a0a;border:2px solid #333;border-radius:12px;min-height:280px;position:relative;overflow:hidden;padding:10px;">
+            </div>
+            <div id="fnaf-controls" style="display:flex;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                <button id="fnaf-cam" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">📹 Cameras</button>
+                <button id="fnaf-ldoor" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ff4444;border-radius:8px;color:#ff4444;cursor:pointer;">🚪 Left Door</button>
+                <button id="fnaf-rdoor" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ff4444;border-radius:8px;color:#ff4444;cursor:pointer;">🚪 Right Door</button>
+                <button id="fnaf-light" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ffaa00;border-radius:8px;color:#ffaa00;cursor:pointer;">💡 Light</button>
+            </div>
+            <div style="color:#555;font-size:0.7rem;margin-top:6px;">Check cameras, close doors when animatronics are near, survive until 6 AM!</div>
+        </div>
+    `;
+
+    const screen = document.getElementById('fnaf-screen');
+
+    const animatronics = [
+        {name:'Freddy', emoji:'🐻', room:0, aggressiveness:1, color:'#8B4513'},
+        {name:'Bonnie', emoji:'🐰', room:0, aggressiveness:2, color:'#6A1B9A'},
+        {name:'Chica', emoji:'🐥', room:0, aggressiveness:2, color:'#F9A825'},
+        {name:'Foxy', emoji:'🦊', room:0, aggressiveness:3, color:'#D84315'}
+    ];
+
+    // Rooms: 0=Show Stage, 1=Dining Area, 2=Backstage, 3=West Hall, 4=East Hall,
+    // 5=Left Door, 6=Right Door, 7=Kitchen, 8=Supply Closet, 9=Pirate Cove (Foxy)
+    const roomNames = ['Show Stage','Dining Area','Backstage','West Hall','East Hall','Left Door','Right Door','Kitchen','Supply Closet','Pirate Cove'];
+    const roomEmojis = ['🎤','🍽️','📦','🚶‍♂️','🚶','🚪','🚪','🍕','🧹','🏴‍☠️'];
+
+    // Movement paths
+    const paths = {
+        0: [1,2], // Stage -> Dining or Backstage
+        1: [3,4,7], // Dining -> West/East Hall or Kitchen
+        2: [3], // Backstage -> West Hall
+        3: [5], // West Hall -> Left Door
+        4: [6], // East Hall -> Right Door
+        7: [4], // Kitchen -> East Hall
+        8: [3], // Supply -> West Hall
+        9: [3,1] // Pirate Cove -> West Hall or Dining
+    };
+
+    let night, hour, power, leftDoor, rightDoor, viewingCams, selectedCam;
+    let gameActive, hourInterval, moveInterval, powerInterval, lightOn;
+    let jumpscareActive, msgText;
+
+    function resetGame() {
+        night = 1;
+        startNight();
+    }
+
+    function startNight() {
+        hour = 0; // 12 AM = 0, 1 AM = 1, ... 6 AM = 6
+        power = 100;
+        leftDoor = false;
+        rightDoor = false;
+        viewingCams = false;
+        selectedCam = 0;
+        lightOn = false;
+        jumpscareActive = false;
+        gameActive = true;
+        msgText = '';
+
+        // Reset animatronic positions
+        animatronics[0].room = 0; // Freddy on stage
+        animatronics[1].room = 0; // Bonnie on stage
+        animatronics[2].room = 0; // Chica on stage
+        animatronics[3].room = 9; // Foxy in Pirate Cove
+
+        // Adjust aggressiveness per night
+        animatronics.forEach(a => {
+            a.aggressiveness = Math.min(a.aggressiveness + (night-1) * 0.5, 10);
+        });
+
+        if (hourInterval) clearInterval(hourInterval);
+        if (moveInterval) clearInterval(moveInterval);
+        if (powerInterval) clearInterval(powerInterval);
+
+        // Hour advances every 8 seconds (48 sec per night)
+        hourInterval = setInterval(() => {
+            if (!gameActive) return;
+            hour++;
+            if (hour >= 6) {
+                // Survived!
+                gameActive = false;
+                clearIntervals();
+                const isNew = setHigh('fnaf', night);
+                screen.innerHTML = `
+                    <div style="padding:40px;text-align:center;">
+                        <div style="font-size:4rem;">☀️</div>
+                        <div style="font-size:2rem;color:#ffaa00;font-family:Orbitron,sans-serif;margin:10px 0;">6 AM</div>
+                        <div style="color:#4CAF50;font-size:1.3rem;">You survived Night ${night}! 🎉</div>
+                        ${isNew ? '<div style="color:#ffaa00;margin:5px 0;">⭐ New Record!</div>' : ''}
+                        <button id="fnaf-next" style="margin-top:15px;padding:10px 25px;font-size:1rem;background:linear-gradient(135deg,#ff4444,#b44aff);border:none;border-radius:8px;cursor:pointer;color:#fff;font-family:Orbitron,sans-serif;">Night ${night+1} →</button>
+                    </div>
+                `;
+                document.getElementById('fnaf-next').onclick = () => { night++; startNight(); };
+            }
+            render();
+        }, 8000);
+
+        // Animatronics move every 5 seconds
+        moveInterval = setInterval(() => {
+            if (!gameActive) return;
+            moveAnimatronics();
+            checkAttack();
+            render();
+        }, 5000);
+
+        // Power drain
+        powerInterval = setInterval(() => {
+            if (!gameActive) return;
+            let drain = 1;
+            if (leftDoor) drain += 1;
+            if (rightDoor) drain += 1;
+            if (viewingCams) drain += 1;
+            if (lightOn) drain += 0.5;
+            power = Math.max(0, power - drain);
+
+            if (power <= 0) {
+                // Power out — Freddy comes
+                leftDoor = false;
+                rightDoor = false;
+                viewingCams = false;
+                lightOn = false;
+                setTimeout(() => {
+                    if (!gameActive) return;
+                    jumpscare(animatronics[0]);
+                }, 3000);
+            }
+            render();
+        }, 2000);
+
+        render();
+    }
+
+    function clearIntervals() {
+        if (hourInterval) { clearInterval(hourInterval); hourInterval = null; }
+        if (moveInterval) { clearInterval(moveInterval); moveInterval = null; }
+        if (powerInterval) { clearInterval(powerInterval); powerInterval = null; }
+    }
+
+    function moveAnimatronics() {
+        for (const a of animatronics) {
+            if (a.room === 5 || a.room === 6) continue; // at doors, don't move further
+            if (Math.random() * 10 > a.aggressiveness) continue; // chance to not move
+
+            const possibleRooms = paths[a.room];
+            if (!possibleRooms || possibleRooms.length === 0) continue;
+            a.room = possibleRooms[Math.floor(Math.random() * possibleRooms.length)];
+        }
+    }
+
+    function checkAttack() {
+        // Check left door
+        const atLeft = animatronics.filter(a => a.room === 5);
+        if (atLeft.length > 0 && !leftDoor) {
+            jumpscare(atLeft[0]);
+            return;
+        }
+
+        // Check right door
+        const atRight = animatronics.filter(a => a.room === 6);
+        if (atRight.length > 0 && !rightDoor) {
+            jumpscare(atRight[0]);
+            return;
+        }
+
+        // If door is closed, push them back
+        atLeft.forEach(a => { a.room = 3; });
+        atRight.forEach(a => { a.room = 4; });
+    }
+
+    function jumpscare(animatronic) {
+        gameActive = false;
+        jumpscareActive = true;
+        clearIntervals();
+
+        screen.innerHTML = `
+            <div style="background:#0a0a0a;padding:20px;text-align:center;animation:shake 0.3s infinite;">
+                <div style="font-size:8rem;filter:drop-shadow(0 0 20px ${animatronic.color});">${animatronic.emoji}</div>
+                <div style="font-size:1.5rem;color:${animatronic.color};font-family:Orbitron,sans-serif;margin:10px 0;">${animatronic.name.toUpperCase()}!</div>
+                <div style="color:#ff4444;font-size:1.1rem;">☠️ Game Over — Night ${night}</div>
+                <div style="color:#888;margin:5px 0;">Best: Night ${getHigh('fnaf')}</div>
+                <button id="fnaf-retry" style="margin-top:15px;padding:10px 25px;font-size:1rem;background:#ff4444;border:none;border-radius:8px;cursor:pointer;color:#fff;font-family:Orbitron,sans-serif;">🔄 Try Again</button>
+            </div>
+            <style>@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}</style>
+        `;
+        document.getElementById('fnaf-retry').onclick = resetGame;
+    }
+
+    function render() {
+        if (jumpscareActive) return;
+
+        const hourStr = hour === 0 ? '12 AM' : hour + ' AM';
+
+        if (viewingCams) {
+            // Camera view
+            const camRoom = selectedCam;
+            const inRoom = animatronics.filter(a => a.room === camRoom);
+            const static1 = Math.random() > 0.7 ? 'filter:brightness(0.5);' : '';
+
+            let camContent = `<div style="font-size:3rem;margin:15px 0;">${roomEmojis[camRoom]}</div>`;
+            if (inRoom.length > 0) {
+                camContent += `<div style="font-size:2.5rem;margin:10px 0;${static1}">${inRoom.map(a=>a.emoji).join(' ')}</div>`;
+                camContent += `<div style="color:#ff4444;font-size:0.9rem;">${inRoom.map(a=>a.name).join(', ')} spotted!</div>`;
+            } else {
+                camContent += `<div style="color:#4CAF50;font-size:0.9rem;margin:10px 0;">Room is clear ✅</div>`;
+            }
+
+            let camButtons = '';
+            roomNames.forEach((name, i) => {
+                if (i === 5 || i === 6) return; // skip door rooms from cam list
+                const hasAnim = animatronics.some(a => a.room === i);
+                const sel = selectedCam === i;
+                camButtons += `<button onclick="window._fnafCam(${i})" style="padding:4px 8px;font-size:0.7rem;background:${sel?'#333':'#111'};border:1px solid ${hasAnim?'#ff4444':'#333'};border-radius:4px;color:${hasAnim?'#ff4444':'#888'};cursor:pointer;margin:2px;">${name}</button>`;
+            });
+
+            screen.innerHTML = `
+                <div style="position:relative;">
+                    <div style="background:#0a0a0a;padding:10px;border-bottom:1px solid #333;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="color:#00d4ff;font-family:Orbitron;font-size:0.8rem;">📹 CAM ${String(camRoom+1).padStart(2,'0')}</span>
+                            <span style="color:#ffaa00;font-family:Orbitron;font-size:0.9rem;">${hourStr}</span>
+                            <span style="color:${power<20?'#ff4444':'#4CAF50'};font-family:Orbitron;font-size:0.8rem;">⚡${Math.round(power)}%</span>
+                        </div>
+                    </div>
+                    <div style="padding:15px;min-height:140px;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.02) 2px,rgba(255,255,255,0.02) 4px);">
+                        <div style="color:#aaa;font-size:0.8rem;">${roomNames[camRoom]}</div>
+                        ${camContent}
+                    </div>
+                    <div style="padding:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:2px;background:#111;">
+                        ${camButtons}
+                    </div>
+                    <div style="color:#666;font-size:0.7rem;margin-top:5px;">Night ${night} | 🚪L:${leftDoor?'🔴SHUT':'🟢OPEN'} R:${rightDoor?'🔴SHUT':'🟢OPEN'}</div>
+                </div>
+            `;
+        } else {
+            // Office view
+            const leftCheck = animatronics.filter(a => a.room === 5);
+            const rightCheck = animatronics.filter(a => a.room === 6);
+            const leftHallCheck = animatronics.filter(a => a.room === 3);
+            const rightHallCheck = animatronics.filter(a => a.room === 4);
+
+            let leftStatus = leftDoor ? '🔴 CLOSED' : '🟢 OPEN';
+            let rightStatus = rightDoor ? '🔴 CLOSED' : '🟢 OPEN';
+
+            let officeView = '<div style="font-size:2rem;margin:10px 0;">🖥️ Your Office 🪑</div>';
+
+            if (lightOn) {
+                if (leftCheck.length > 0) {
+                    officeView += `<div style="color:#ff4444;font-size:1.2rem;animation:shake 0.2s infinite;">⚠️ ${leftCheck[0].emoji} ${leftCheck[0].name} AT LEFT DOOR! ⚠️</div>`;
+                }
+                if (rightCheck.length > 0) {
+                    officeView += `<div style="color:#ff4444;font-size:1.2rem;animation:shake 0.2s infinite;">⚠️ ${rightCheck[0].emoji} ${rightCheck[0].name} AT RIGHT DOOR! ⚠️</div>`;
+                }
+                if (leftHallCheck.length > 0) {
+                    officeView += `<div style="color:#ffaa00;font-size:0.9rem;">👀 ${leftHallCheck.map(a=>a.emoji+' '+a.name).join(', ')} in West Hall</div>`;
+                }
+                if (rightHallCheck.length > 0) {
+                    officeView += `<div style="color:#ffaa00;font-size:0.9rem;">👀 ${rightHallCheck.map(a=>a.emoji+' '+a.name).join(', ')} in East Hall</div>`;
+                }
+                if (leftCheck.length===0 && rightCheck.length===0 && leftHallCheck.length===0 && rightHallCheck.length===0) {
+                    officeView += `<div style="color:#4CAF50;font-size:0.9rem;">All clear... for now 😰</div>`;
+                }
+            } else {
+                officeView += `<div style="color:#555;font-size:0.9rem;margin:10px 0;">💡 Turn on the light to check the halls...</div>`;
+            }
+
+            screen.innerHTML = `
+                <div>
+                    <div style="background:#0a0a0a;padding:10px;border-bottom:1px solid #333;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="color:#888;font-family:Orbitron;font-size:0.8rem;">Night ${night}</span>
+                            <span style="color:#ffaa00;font-family:Orbitron;font-size:1rem;">${hourStr}</span>
+                            <span style="color:${power<20?'#ff4444':'#4CAF50'};font-family:Orbitron;font-size:0.8rem;">⚡${Math.round(power)}%</span>
+                        </div>
+                    </div>
+                    <div style="padding:15px;min-height:160px;background:${lightOn?'#111':'#050505'};">
+                        ${officeView}
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:8px;background:#0a0a0a;">
+                        <div style="text-align:center;">
+                            <div style="color:#888;font-size:0.7rem;">Left Door</div>
+                            <div style="font-size:0.8rem;">${leftStatus}</div>
+                        </div>
+                        <div style="font-size:2rem;">${lightOn?'💡':'🌑'}</div>
+                        <div style="text-align:center;">
+                            <div style="color:#888;font-size:0.7rem;">Right Door</div>
+                            <div style="font-size:0.8rem;">${rightStatus}</div>
+                        </div>
+                    </div>
+                </div>
+                <style>@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}</style>
+            `;
+        }
+    }
+
+    // Camera selection
+    window._fnafCam = (room) => { selectedCam = room; render(); };
+
+    // Controls
+    document.getElementById('fnaf-cam').onclick = () => {
+        if (!gameActive) return;
+        viewingCams = !viewingCams;
+        document.getElementById('fnaf-cam').textContent = viewingCams ? '🖥️ Office' : '📹 Cameras';
+        render();
+    };
+    document.getElementById('fnaf-ldoor').onclick = () => {
+        if (!gameActive) return;
+        leftDoor = !leftDoor;
+        checkAttack();
+        render();
+    };
+    document.getElementById('fnaf-rdoor').onclick = () => {
+        if (!gameActive) return;
+        rightDoor = !rightDoor;
+        checkAttack();
+        render();
+    };
+    document.getElementById('fnaf-light').onclick = () => {
+        if (!gameActive) return;
+        lightOn = !lightOn;
+        render();
+    };
+
+    gameScoreDisplay.textContent = 'Best: Night ' + getHigh('fnaf');
+    resetGame();
+
+    gameCleanup = () => {
+        gameActive = false;
+        clearIntervals();
+        delete window._fnafCam;
     };
 }
