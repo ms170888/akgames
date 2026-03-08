@@ -81,6 +81,7 @@ function launchGame(name) {
         case 'geodash': initGeoDash(); break;
         case 'kingshot': initKingShot(); break;
         case 'minicraft': initMiniCraft(); break;
+        case 'forest99': initForest99(); break;
 
     }
 }
@@ -3607,6 +3608,466 @@ function initMiniCraft() {
     gameScoreDisplay.textContent = '';
 
     gameCleanup = () => {
+        document.removeEventListener('keydown', onKey);
+    };
+}
+
+// ==================== 99 NIGHTS IN THE FOREST ====================
+function initForest99() {
+    gameTitle.textContent = '🌲 99 Nights';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 360;
+    canvas.height = 360;
+    canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #1B5E20;border-radius:12px;background:#0a0a0a;touch-action:none;';
+
+    const startBtn = document.createElement('button');
+    startBtn.textContent = '▶ Enter the Forest';
+    startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#1B5E20,#004D40);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;color:#A5D6A7;';
+
+    const dpad = document.createElement('div');
+    dpad.style.cssText = 'display:grid;grid-template-columns:45px 45px 45px;grid-template-rows:45px 45px;gap:3px;justify-content:center;margin-top:8px;';
+    dpad.innerHTML = `
+        <div></div>
+        <button id="f99-up" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">⬆</button>
+        <div></div>
+        <button id="f99-left" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">⬅</button>
+        <button id="f99-action" style="font-size:0.8rem;background:#0a1a0a;border:2px solid #FF6F00;border-radius:8px;color:#FFA726;cursor:pointer;">🔦</button>
+        <button id="f99-right" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">➡</button>
+        <div></div>
+        <button id="f99-down" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">⬇</button>
+        <div></div>
+    `;
+
+    const info = document.createElement('div');
+    info.style.cssText = 'text-align:center;color:#555;font-size:0.7rem;margin-top:6px;';
+    info.textContent = 'WASD/Arrows: move | F: flashlight | Collect items, survive all nights!';
+
+    gameArea.appendChild(canvas);
+    gameArea.appendChild(startBtn);
+    gameArea.appendChild(dpad);
+    gameArea.appendChild(info);
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const TILE = 24;
+    const COLS = Math.floor(W / TILE);
+    const ROWS = Math.floor(H / TILE);
+
+    let world, player, ghosts, items, night, health, flashlight, flashlightOn;
+    let running, frameId, nightTimer, nightInterval, collected, totalItems;
+    let msgText, msgTimer;
+
+    const TREE = 1;
+    const BUSH = 2;
+    const ROCK = 3;
+    const ITEM_KEY = 4;
+    const ITEM_BATTERY = 5;
+    const ITEM_MEDKIT = 6;
+    const EXIT = 7;
+
+    function generateForest() {
+        world = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+
+        // Border
+        for (let x = 0; x < COLS; x++) { world[0][x] = TREE; world[ROWS-1][x] = TREE; }
+        for (let y = 0; y < ROWS; y++) { world[y][0] = TREE; world[y][COLS-1] = TREE; }
+
+        // Trees scattered
+        for (let i = 0; i < 30 + night * 3; i++) {
+            const x = 1 + Math.floor(Math.random() * (COLS - 2));
+            const y = 1 + Math.floor(Math.random() * (ROWS - 2));
+            if (world[y][x] === 0) world[y][x] = Math.random() < 0.7 ? TREE : (Math.random() < 0.5 ? BUSH : ROCK);
+        }
+
+        // Place items
+        items = [];
+        const numItems = 2 + Math.floor(night / 3);
+        for (let i = 0; i < numItems; i++) {
+            let x, y;
+            do { x = 1 + Math.floor(Math.random() * (COLS - 2)); y = 1 + Math.floor(Math.random() * (ROWS - 2)); }
+            while (world[y][x] !== 0);
+            const type = Math.random() < 0.4 ? ITEM_KEY : (Math.random() < 0.5 ? ITEM_BATTERY : ITEM_MEDKIT);
+            items.push({x, y, type, collected: false});
+        }
+        totalItems = items.filter(i => i.type === ITEM_KEY).length;
+
+        // Place exit
+        let ex, ey;
+        do { ex = 1 + Math.floor(Math.random() * (COLS - 2)); ey = 1 + Math.floor(Math.random() * (ROWS - 2)); }
+        while (world[ey][ex] !== 0);
+        world[ey][ex] = EXIT;
+
+        // Player spawn
+        do {
+            player.x = 1 + Math.floor(Math.random() * (COLS - 2));
+            player.y = 1 + Math.floor(Math.random() * (ROWS - 2));
+        } while (world[player.y][player.x] !== 0);
+
+        // Ghosts
+        ghosts = [];
+        const numGhosts = Math.min(2 + Math.floor(night / 2), 8);
+        for (let i = 0; i < numGhosts; i++) {
+            let gx, gy;
+            do { gx = 1 + Math.floor(Math.random() * (COLS - 2)); gy = 1 + Math.floor(Math.random() * (ROWS - 2)); }
+            while (world[gy][gx] !== 0 || (Math.abs(gx - player.x) < 4 && Math.abs(gy - player.y) < 4));
+            ghosts.push({x: gx, y: gy, moveTimer: 0, emoji: ['👻','💀','🧟','😈','👹','🦇','🕷️','🎃'][i % 8]});
+        }
+
+        collected = 0;
+    }
+
+    function showMsg(text) {
+        msgText = text;
+        msgTimer = 90;
+    }
+
+    function movePlayer(dx, dy) {
+        if (!running) return;
+        const nx = player.x + dx;
+        const ny = player.y + dy;
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return;
+        const tile = world[ny][nx];
+        if (tile === TREE || tile === ROCK) return;
+
+        if (tile === BUSH) {
+            world[ny][nx] = 0; // break bush
+        }
+
+        if (tile === EXIT) {
+            const keysNeeded = totalItems;
+            const keysHave = items.filter(i => i.type === ITEM_KEY && i.collected).length;
+            if (keysHave >= keysNeeded || keysNeeded === 0) {
+                // Win this night!
+                night++;
+                flashlight = Math.min(100, flashlight + 20);
+                showMsg('☀️ Night ' + (night - 1) + ' survived! Entering night ' + night + '...');
+                generateForest();
+                return;
+            } else {
+                showMsg('🔑 Need ' + (keysNeeded - keysHave) + ' more key(s)!');
+                return;
+            }
+        }
+
+        player.x = nx;
+        player.y = ny;
+
+        // Check item pickup
+        for (const item of items) {
+            if (!item.collected && item.x === nx && item.y === ny) {
+                item.collected = true;
+                if (item.type === ITEM_KEY) { collected++; showMsg('🔑 Got a key! (' + collected + '/' + totalItems + ')'); }
+                if (item.type === ITEM_BATTERY) { flashlight = Math.min(100, flashlight + 30); showMsg('🔋 Flashlight recharged!'); }
+                if (item.type === ITEM_MEDKIT) { health = Math.min(100, health + 25); showMsg('💊 Health restored!'); }
+            }
+        }
+
+        // Check ghost collision
+        for (const g of ghosts) {
+            if (g.x === nx && g.y === ny) {
+                health -= 20;
+                showMsg('👻 A ghost got you! -20 HP');
+                // Push ghost away
+                g.x = Math.max(1, Math.min(COLS - 2, g.x + (Math.random() < 0.5 ? 3 : -3)));
+                g.y = Math.max(1, Math.min(ROWS - 2, g.y + (Math.random() < 0.5 ? 3 : -3)));
+            }
+        }
+
+        if (health <= 0) {
+            running = false;
+            if (nightInterval) { clearInterval(nightInterval); nightInterval = null; }
+            showGameOver('You didn\'t survive...', night - 1, 'forest99', resetGame);
+        }
+    }
+
+    function moveGhosts() {
+        for (const g of ghosts) {
+            g.moveTimer--;
+            if (g.moveTimer > 0) continue;
+            g.moveTimer = 3 + Math.floor(Math.random() * 3);
+
+            // Chase player
+            let dx = 0, dy = 0;
+            const distX = player.x - g.x;
+            const distY = player.y - g.y;
+            const dist = Math.abs(distX) + Math.abs(distY);
+
+            // Flashlight scares them
+            if (flashlightOn && dist < 5) {
+                dx = distX > 0 ? -1 : 1;
+                dy = distY > 0 ? -1 : 1;
+            } else if (dist < 8) {
+                if (Math.random() < 0.6) {
+                    dx = distX > 0 ? 1 : (distX < 0 ? -1 : 0);
+                    dy = distY > 0 ? 1 : (distY < 0 ? -1 : 0);
+                } else {
+                    dx = Math.floor(Math.random() * 3) - 1;
+                    dy = Math.floor(Math.random() * 3) - 1;
+                }
+            } else {
+                dx = Math.floor(Math.random() * 3) - 1;
+                dy = Math.floor(Math.random() * 3) - 1;
+            }
+
+            const nx = g.x + dx;
+            const ny = g.y + dy;
+            if (nx > 0 && nx < COLS - 1 && ny > 0 && ny < ROWS - 1 && world[ny][nx] !== TREE && world[ny][nx] !== ROCK) {
+                g.x = nx;
+                g.y = ny;
+            }
+
+            // Ghost hits player
+            if (g.x === player.x && g.y === player.y) {
+                health -= 15;
+                showMsg(g.emoji + ' attacked you! -15 HP');
+                g.x = Math.max(1, Math.min(COLS - 2, g.x + (Math.random() < 0.5 ? 3 : -3)));
+            }
+
+            if (health <= 0) {
+                running = false;
+                if (nightInterval) { clearInterval(nightInterval); nightInterval = null; }
+                showGameOver('You didn\'t survive...', night - 1, 'forest99', resetGame);
+            }
+        }
+    }
+
+    function draw() {
+        ctx.fillStyle = '#050505';
+        ctx.fillRect(0, 0, W, H);
+
+        const viewDist = flashlightOn ? 6 : 3;
+
+        for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) {
+                const dist = Math.sqrt((x - player.x) ** 2 + (y - player.y) ** 2);
+                if (dist > viewDist + 1) continue;
+
+                const alpha = Math.max(0, 1 - dist / (viewDist + 1));
+                const px = x * TILE;
+                const py = y * TILE;
+
+                ctx.globalAlpha = alpha;
+
+                // Ground
+                ctx.fillStyle = '#1a2e1a';
+                ctx.fillRect(px, py, TILE, TILE);
+
+                const tile = world[y][x];
+                if (tile === TREE) {
+                    ctx.font = `${TILE - 4}px serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🌲', px + TILE / 2, py + TILE / 2);
+                } else if (tile === BUSH) {
+                    ctx.font = `${TILE - 6}px serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🌿', px + TILE / 2, py + TILE / 2);
+                } else if (tile === ROCK) {
+                    ctx.font = `${TILE - 4}px serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🪨', px + TILE / 2, py + TILE / 2);
+                } else if (tile === EXIT) {
+                    ctx.font = `${TILE - 4}px serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🚪', px + TILE / 2, py + TILE / 2);
+                }
+            }
+        }
+
+        // Items
+        for (const item of items) {
+            if (item.collected) continue;
+            const dist = Math.sqrt((item.x - player.x) ** 2 + (item.y - player.y) ** 2);
+            if (dist > viewDist + 1) continue;
+            ctx.globalAlpha = Math.max(0, 1 - dist / (viewDist + 1));
+            const emoji = item.type === ITEM_KEY ? '🔑' : (item.type === ITEM_BATTERY ? '🔋' : '💊');
+            ctx.font = `${TILE - 6}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, item.x * TILE + TILE / 2, item.y * TILE + TILE / 2);
+        }
+
+        // Ghosts
+        for (const g of ghosts) {
+            const dist = Math.sqrt((g.x - player.x) ** 2 + (g.y - player.y) ** 2);
+            if (dist > viewDist + 1) continue;
+            ctx.globalAlpha = Math.max(0.2, 1 - dist / (viewDist + 1));
+            ctx.font = `${TILE - 2}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(g.emoji, g.x * TILE + TILE / 2, g.y * TILE + TILE / 2);
+        }
+
+        // Player
+        ctx.globalAlpha = 1;
+        ctx.font = `${TILE}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🧑', player.x * TILE + TILE / 2, player.y * TILE + TILE / 2);
+
+        // Flashlight glow
+        if (flashlightOn) {
+            const grad = ctx.createRadialGradient(
+                player.x * TILE + TILE / 2, player.y * TILE + TILE / 2, 10,
+                player.x * TILE + TILE / 2, player.y * TILE + TILE / 2, viewDist * TILE
+            );
+            grad.addColorStop(0, 'rgba(255,200,50,0.1)');
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        // Vignette
+        const vig = ctx.createRadialGradient(W / 2, H / 2, 50, W / 2, H / 2, W * 0.7);
+        vig.addColorStop(0, 'rgba(0,0,0,0)');
+        vig.addColorStop(1, 'rgba(0,0,0,0.7)');
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, W, H);
+
+        // HUD
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, W, 28);
+
+        ctx.font = 'bold 11px Orbitron, sans-serif';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#b44aff';
+        ctx.fillText('Night ' + night, 6, 7);
+
+        // Health bar
+        ctx.fillStyle = '#333';
+        ctx.fillRect(90, 8, 60, 12);
+        ctx.fillStyle = health > 50 ? '#4CAF50' : (health > 25 ? '#FF9800' : '#f44336');
+        ctx.fillRect(90, 8, 60 * (health / 100), 12);
+        ctx.strokeStyle = '#555';
+        ctx.strokeRect(90, 8, 60, 12);
+        ctx.fillStyle = '#fff';
+        ctx.font = '9px Orbitron';
+        ctx.textAlign = 'center';
+        ctx.fillText('❤️' + health, 120, 9);
+
+        // Flashlight bar
+        ctx.fillStyle = '#333';
+        ctx.fillRect(165, 8, 50, 12);
+        ctx.fillStyle = flashlight > 30 ? '#FFC107' : '#FF5722';
+        ctx.fillRect(165, 8, 50 * (flashlight / 100), 12);
+        ctx.strokeStyle = '#555';
+        ctx.strokeRect(165, 8, 50, 12);
+        ctx.fillStyle = '#fff';
+        ctx.font = '9px Orbitron';
+        ctx.fillText('🔦' + Math.round(flashlight), 190, 9);
+
+        // Keys
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 11px Orbitron';
+        ctx.fillText('🔑' + collected + '/' + totalItems, W - 6, 7);
+
+        // Message
+        if (msgTimer > 0) {
+            msgTimer--;
+            ctx.globalAlpha = Math.min(1, msgTimer / 30);
+            ctx.fillStyle = 'rgba(0,0,0,0.8)';
+            ctx.fillRect(20, H - 50, W - 40, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Rajdhani, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(msgText, W / 2, H - 35);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    function gameLoop() {
+        if (!running) return;
+
+        // Drain flashlight
+        if (flashlightOn) {
+            flashlight -= 0.15;
+            if (flashlight <= 0) {
+                flashlight = 0;
+                flashlightOn = false;
+                showMsg('🔦 Flashlight died!');
+            }
+        }
+
+        moveGhosts();
+        draw();
+        frameId = requestAnimationFrame(gameLoop);
+    }
+
+    function resetGame() {
+        night = 1;
+        health = 100;
+        flashlight = 80;
+        flashlightOn = true;
+        running = true;
+        msgText = '';
+        msgTimer = 0;
+        player = {x: 5, y: 5};
+        generateForest();
+        showMsg('🌙 Night 1... Find the keys and reach the door!');
+        frameId = requestAnimationFrame(gameLoop);
+    }
+
+    function onKey(e) {
+        switch (e.key) {
+            case 'ArrowUp': case 'w': case 'W': movePlayer(0, -1); break;
+            case 'ArrowDown': case 's': case 'S': movePlayer(0, 1); break;
+            case 'ArrowLeft': case 'a': case 'A': movePlayer(-1, 0); break;
+            case 'ArrowRight': case 'd': case 'D': movePlayer(1, 0); break;
+            case 'f': case 'F':
+                if (flashlight > 0) { flashlightOn = !flashlightOn; showMsg(flashlightOn ? '🔦 Light ON' : '🔦 Light OFF'); }
+                break;
+        }
+    }
+
+    document.addEventListener('keydown', onKey);
+
+    const setupBtn = (id, fn) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', fn);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); });
+        }
+    };
+
+    setupBtn('f99-up', () => movePlayer(0, -1));
+    setupBtn('f99-down', () => movePlayer(0, 1));
+    setupBtn('f99-left', () => movePlayer(-1, 0));
+    setupBtn('f99-right', () => movePlayer(1, 0));
+    setupBtn('f99-action', () => {
+        if (flashlight > 0) { flashlightOn = !flashlightOn; showMsg(flashlightOn ? '🔦 Light ON' : '🔦 Light OFF'); }
+    });
+
+    startBtn.onclick = () => {
+        resetGame();
+        startBtn.style.display = 'none';
+    };
+
+    gameScoreDisplay.textContent = 'Best: Night ' + getHigh('forest99');
+
+    // Initial draw
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = 'bold 16px Orbitron, sans-serif';
+    ctx.fillStyle = '#2E7D32';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🌲 99 Nights 🌲', W / 2, H / 2 - 30);
+    ctx.font = '11px Rajdhani, sans-serif';
+    ctx.fillStyle = '#666';
+    ctx.fillText('Survive the haunted forest...', W / 2, H / 2);
+    ctx.fillText('Find keys 🔑 Avoid ghosts 👻 Reach the exit 🚪', W / 2, H / 2 + 20);
+
+    gameCleanup = () => {
+        running = false;
+        cancelAnimationFrame(frameId);
         document.removeEventListener('keydown', onKey);
     };
 }
