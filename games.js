@@ -74,6 +74,7 @@ function launchGame(name) {
         case 'shooter': initShooter(); break;
         case 'pong': initPong(); break;
         case 'bingo': initBingo(); break;
+        case 'hideseek': initHideSeek(); break;
 
     }
 }
@@ -1488,5 +1489,161 @@ function initTalkingCat() {
         delete window._talkingCatSleep;
         delete window._talkingCatTickle;
         delete window._talkingCatOutfit;
+    };
+}
+
+// ==================== HIDE & SEEK ====================
+function initHideSeek() {
+    gameTitle.textContent = '👀 Hide & Seek';
+
+    const characters = ['🐸','🐻','🐱','🐶','🐰','🦊','🐼','🐨','🦁','🐯','🐮','🐷','🐵','🦄','🐲','🐙','🦀','🐢','🦋','🐝'];
+    const hidingSpots = ['🌳','🪨','🏠','📦','🗑️','🚗','⛺','🏔️','🌻','🎪','🧱','🪣','🛖','🏗️','🎁','🗄️','🚪','🪴','🎭','🏺'];
+
+    let level, found, toFind, grid, timer, timerInterval, score, gridSize, hiddenPositions;
+
+    function startLevel() {
+        gridSize = Math.min(4 + Math.floor(level / 2), 7);
+        toFind = Math.min(3 + Math.floor(level / 2), 8);
+        found = 0;
+        timer = 30 + level * 5;
+
+        // Build grid with hiding spots
+        const totalCells = gridSize * gridSize;
+        grid = [];
+        for (let i = 0; i < totalCells; i++) {
+            grid.push({
+                spot: hidingSpots[Math.floor(Math.random() * hidingSpots.length)],
+                hidden: null,
+                revealed: false,
+                checked: false
+            });
+        }
+
+        // Place hidden characters
+        hiddenPositions = [];
+        const available = [...Array(totalCells).keys()];
+        for (let i = available.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [available[i], available[j]] = [available[j], available[i]];
+        }
+        for (let i = 0; i < toFind; i++) {
+            const pos = available[i];
+            grid[pos].hidden = characters[Math.floor(Math.random() * characters.length)];
+            hiddenPositions.push(pos);
+        }
+
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timer--;
+            render();
+            if (timer <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                // Reveal all hidden
+                hiddenPositions.forEach(p => { grid[p].revealed = true; });
+                render();
+                setTimeout(() => {
+                    const isNew = setHigh('hideseek', score);
+                    showGameOver('Time\'s Up!', score, 'hideseek', () => {
+                        level = 1; score = 0; startLevel();
+                    });
+                }, 1500);
+            }
+        }, 1000);
+
+        render();
+    }
+
+    function checkSpot(idx) {
+        if (grid[idx].revealed || grid[idx].checked) return;
+
+        if (grid[idx].hidden) {
+            grid[idx].revealed = true;
+            found++;
+            score += 10 + level * 5;
+
+            if (found >= toFind) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                score += timer * 2; // bonus for remaining time
+                render();
+                setTimeout(() => {
+                    level++;
+                    startLevel();
+                }, 1200);
+            } else {
+                render();
+            }
+        } else {
+            grid[idx].checked = true;
+            timer = Math.max(0, timer - 2); // penalty: lose 2 seconds
+            render();
+        }
+    }
+
+    function render() {
+        const cellSize = Math.max(40, Math.min(60, Math.floor(320 / gridSize)));
+
+        let gridHTML = `<div style="display:inline-grid;grid-template-columns:repeat(${gridSize},${cellSize}px);gap:4px;margin:10px auto;">`;
+        for (let i = 0; i < grid.length; i++) {
+            const cell = grid[i];
+            let content, bg, border, cursor, glow;
+
+            if (cell.revealed) {
+                content = cell.hidden;
+                bg = '#0a3a1a';
+                border = '2px solid #00ff88';
+                cursor = 'default';
+                glow = 'box-shadow:0 0 15px rgba(0,255,136,0.4);';
+            } else if (cell.checked) {
+                content = '❌';
+                bg = '#2a0a0a';
+                border = '2px solid #ff4444';
+                cursor = 'default';
+                glow = '';
+            } else {
+                content = cell.spot;
+                bg = '#1a1a2e';
+                border = '2px solid #333';
+                cursor = 'pointer';
+                glow = '';
+            }
+
+            gridHTML += `<div onclick="window._hideSeekCheck(${i})" style="width:${cellSize}px;height:${cellSize}px;display:flex;align-items:center;justify-content:center;font-size:${cellSize * 0.55}px;background:${bg};border:${border};border-radius:10px;cursor:${cursor};transition:all 0.2s;user-select:none;${glow}">${content}</div>`;
+        }
+        gridHTML += '</div>';
+
+        const progressDots = [];
+        for (let i = 0; i < toFind; i++) {
+            progressDots.push(i < found ? '🟢' : '⚫');
+        }
+
+        gameArea.innerHTML = `
+            <div style="text-align:center;padding:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;max-width:350px;margin:0 auto 10px;">
+                    <div style="color:#b44aff;font-family:Orbitron,sans-serif;font-size:0.9rem;">Level ${level}</div>
+                    <div style="color:${timer <= 10 ? '#ff4444' : '#00d4ff'};font-family:Orbitron,sans-serif;font-size:1.2rem;${timer <= 10 ? 'animation:pulse 0.5s infinite;' : ''}">⏱️ ${timer}s</div>
+                    <div style="color:#00ff88;font-family:Orbitron,sans-serif;font-size:0.9rem;">Score: ${score}</div>
+                </div>
+                <div style="margin-bottom:8px;color:#aaa;font-size:0.85rem;">Find ${toFind} hidden characters! (${found}/${toFind})</div>
+                <div style="margin-bottom:10px;font-size:1.2rem;letter-spacing:4px;">${progressDots.join('')}</div>
+                ${gridHTML}
+                <div style="margin-top:10px;color:#666;font-size:0.75rem;">Tap hiding spots to look behind them! Wrong guesses lose 2 seconds.</div>
+                <div style="margin-top:5px;color:#888;font-size:0.8rem;">High Score: ${getHigh('hideseek')}</div>
+            </div>
+            <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}</style>
+        `;
+    }
+
+    window._hideSeekCheck = checkSpot;
+
+    gameScoreDisplay.textContent = '';
+    level = 1;
+    score = 0;
+    startLevel();
+
+    gameCleanup = () => {
+        if (timerInterval) clearInterval(timerInterval);
+        delete window._hideSeekCheck;
     };
 }
