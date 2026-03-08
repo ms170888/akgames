@@ -78,6 +78,7 @@ function launchGame(name) {
         case 'racing': initRacing(); break;
         case 'spotdiff': initSpotDiff(); break;
         case 'tag': initTag(); break;
+        case 'geodash': initGeoDash(); break;
 
     }
 }
@@ -2422,5 +2423,392 @@ function initTag() {
         if (timerInterval) clearInterval(timerInterval);
         document.removeEventListener('keydown', onKey);
         document.removeEventListener('keyup', onKey);
+    };
+}
+
+// ==================== GEOMETRY DASH ====================
+function initGeoDash() {
+    gameTitle.textContent = '🔺 Geometry Dash';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 300;
+    canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #b44aff;border-radius:12px;background:#0a0a1a;touch-action:none;cursor:pointer;';
+    const startBtn = document.createElement('button');
+    startBtn.textContent = '▶ Start!';
+    startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#b44aff,#ff44aa);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;color:#fff;';
+    const info = document.createElement('div');
+    info.style.cssText = 'text-align:center;color:#666;font-size:0.75rem;margin-top:8px;';
+    info.textContent = 'Tap, click, or press SPACE to jump! Don\'t hit the obstacles!';
+
+    gameArea.appendChild(canvas);
+    gameArea.appendChild(startBtn);
+    gameArea.appendChild(info);
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const groundY = H - 50;
+
+    // Colors that cycle through like GD
+    const bgColors = ['#0a0a2e','#1a0a2e','#2e0a1a','#0a1a2e','#0a2e1a','#2e1a0a'];
+    const playerColors = ['#00ff88','#00d4ff','#ff44aa','#ffaa00','#b44aff','#ff4444'];
+    const obstacleColors = ['#ff4444','#ff44aa','#b44aff','#00d4ff','#00ff88','#ffaa00'];
+
+    let player, obstacles, particles, score, speed, running, frameId, jumpCount;
+    let colorIndex = 0;
+    let bgOffset = 0;
+    let attempts = 0;
+    let groundPulse = 0;
+
+    function reset() {
+        player = {
+            x: 80,
+            y: groundY - 20,
+            w: 20,
+            h: 20,
+            vy: 0,
+            rotation: 0,
+            grounded: true,
+            jumping: false
+        };
+        obstacles = [];
+        particles = [];
+        score = 0;
+        speed = 4;
+        running = false;
+        jumpCount = 0;
+        colorIndex = 0;
+        bgOffset = 0;
+    }
+
+    function jump() {
+        if (!running) return;
+        if (player.grounded) {
+            player.vy = -9;
+            player.grounded = false;
+            player.jumping = true;
+            // Spawn jump particles
+            for (let i = 0; i < 5; i++) {
+                particles.push({
+                    x: player.x, y: player.y + player.h,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: Math.random() * 2 + 1,
+                    life: 20,
+                    color: playerColors[colorIndex % playerColors.length]
+                });
+            }
+        }
+    }
+
+    function spawnObstacle() {
+        const type = Math.random();
+        if (type < 0.4) {
+            // Spike (triangle)
+            obstacles.push({
+                type: 'spike',
+                x: W + 20,
+                y: groundY,
+                w: 25,
+                h: 30
+            });
+        } else if (type < 0.7) {
+            // Block
+            const h = 20 + Math.random() * 20;
+            obstacles.push({
+                type: 'block',
+                x: W + 20,
+                y: groundY - h,
+                w: 25,
+                h: h
+            });
+        } else if (type < 0.85) {
+            // Double spike
+            obstacles.push({ type: 'spike', x: W + 20, y: groundY, w: 25, h: 30 });
+            obstacles.push({ type: 'spike', x: W + 50, y: groundY, w: 25, h: 30 });
+        } else {
+            // Tall pillar (must jump early)
+            obstacles.push({
+                type: 'block',
+                x: W + 20,
+                y: groundY - 50,
+                w: 20,
+                h: 50
+            });
+        }
+    }
+
+    function checkCollision(obs) {
+        const px = player.x - player.w / 2;
+        const py = player.y - player.h;
+        const pw = player.w;
+        const ph = player.h;
+
+        if (obs.type === 'spike') {
+            // Triangle collision (simplified with smaller hitbox)
+            const cx = obs.x + obs.w / 2;
+            const cy = obs.y - obs.h;
+            const margin = 6;
+            // Simple rect check with margin
+            return px + pw > obs.x + margin && px < obs.x + obs.w - margin &&
+                   py + ph > obs.y - obs.h + margin && py < obs.y;
+        } else {
+            // Block collision
+            return px + pw > obs.x + 3 && px < obs.x + obs.w - 3 &&
+                   py + ph > obs.y + 3 && py < obs.y + obs.h - 3;
+        }
+    }
+
+    function step() {
+        if (!running) return;
+
+        // Gravity
+        player.vy += 0.5;
+        player.y += player.vy;
+
+        // Ground check
+        if (player.y >= groundY - player.h) {
+            player.y = groundY - player.h;
+            player.vy = 0;
+            player.grounded = true;
+            player.jumping = false;
+        }
+
+        // Rotate player when jumping
+        if (!player.grounded) {
+            player.rotation += speed * 3;
+        } else {
+            // Snap rotation to nearest 90
+            player.rotation = Math.round(player.rotation / 90) * 90;
+        }
+
+        // Move obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            obstacles[i].x -= speed;
+            if (obstacles[i].x < -40) {
+                obstacles.splice(i, 1);
+                score += 1;
+            }
+        }
+
+        // Spawn obstacles
+        const lastObs = obstacles.length > 0 ? obstacles[obstacles.length - 1] : null;
+        if (!lastObs || lastObs.x < W - (120 + Math.random() * 80)) {
+            spawnObstacle();
+        }
+
+        // Move particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life--;
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        // Trail particles
+        if (Math.random() < 0.3) {
+            particles.push({
+                x: player.x - player.w / 2,
+                y: player.y,
+                vx: -speed * 0.5 + (Math.random() - 0.5),
+                vy: (Math.random() - 0.5) * 2,
+                life: 15,
+                color: playerColors[colorIndex % playerColors.length]
+            });
+        }
+
+        // Collision
+        for (const obs of obstacles) {
+            if (checkCollision(obs)) {
+                running = false;
+                attempts++;
+
+                // Death particles
+                for (let i = 0; i < 20; i++) {
+                    particles.push({
+                        x: player.x, y: player.y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        life: 30,
+                        color: playerColors[colorIndex % playerColors.length]
+                    });
+                }
+
+                // Draw death frame
+                drawFrame(true);
+
+                setTimeout(() => {
+                    startBtn.textContent = '🔄 Retry (Attempt ' + attempts + ')';
+                    showGameOver('Crashed!', score, 'geodash', () => { reset(); });
+                }, 500);
+                return;
+            }
+        }
+
+        // Speed up
+        speed = 4 + score * 0.05;
+
+        // Color change every 20 points
+        colorIndex = Math.floor(score / 20);
+
+        // BG scroll
+        bgOffset = (bgOffset + speed * 0.5) % 40;
+        groundPulse = (groundPulse + 0.05) % (Math.PI * 2);
+
+        drawFrame(false);
+        frameId = requestAnimationFrame(step);
+    }
+
+    function drawFrame(dead) {
+        const bgCol = bgColors[colorIndex % bgColors.length];
+        const pCol = playerColors[colorIndex % playerColors.length];
+        const oCol = obstacleColors[colorIndex % obstacleColors.length];
+
+        // Background
+        ctx.fillStyle = bgCol;
+        ctx.fillRect(0, 0, W, H);
+
+        // Background grid (moving)
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+        ctx.lineWidth = 1;
+        for (let x = -bgOffset; x < W; x += 40) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+        for (let y = 0; y < H; y += 40) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+
+        // Ground
+        const groundGlow = Math.sin(groundPulse) * 0.2 + 0.8;
+        ctx.fillStyle = pCol;
+        ctx.globalAlpha = 0.15 * groundGlow;
+        ctx.fillRect(0, groundY, W, H - groundY);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = pCol;
+        ctx.fillRect(0, groundY, W, 2);
+
+        // Particles
+        for (const p of particles) {
+            ctx.globalAlpha = p.life / 30;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+        }
+        ctx.globalAlpha = 1;
+
+        // Obstacles
+        for (const obs of obstacles) {
+            if (obs.type === 'spike') {
+                ctx.fillStyle = oCol;
+                ctx.beginPath();
+                ctx.moveTo(obs.x + obs.w / 2, obs.y - obs.h);
+                ctx.lineTo(obs.x, obs.y);
+                ctx.lineTo(obs.x + obs.w, obs.y);
+                ctx.closePath();
+                ctx.fill();
+                // Glow
+                ctx.shadowColor = oCol;
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            } else {
+                ctx.fillStyle = oCol;
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.shadowColor = oCol;
+                ctx.shadowBlur = 8;
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Player (rotating square)
+        ctx.save();
+        ctx.translate(player.x, player.y - player.h / 2);
+        ctx.rotate(player.rotation * Math.PI / 180);
+        ctx.fillStyle = pCol;
+        ctx.shadowColor = pCol;
+        ctx.shadowBlur = 15;
+        ctx.fillRect(-player.w / 2, -player.h / 2, player.w, player.h);
+        ctx.shadowBlur = 0;
+        // Inner detail
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(-player.w / 2 + 3, -player.h / 2 + 3, player.w - 6, player.h / 2 - 3);
+        ctx.restore();
+
+        // HUD
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0, 0, W, 28);
+        ctx.font = 'bold 13px Orbitron, sans-serif';
+        ctx.fillStyle = pCol;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Score: ' + score, 8, 7);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#888';
+        ctx.fillText('Attempt ' + attempts, W / 2, 7);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#ffaa00';
+        ctx.fillText('Best: ' + getHigh('geodash'), W - 8, 7);
+
+        if (dead) {
+            ctx.fillStyle = 'rgba(255,0,0,0.3)';
+            ctx.fillRect(0, 0, W, H);
+        }
+    }
+
+    function onKey(e) {
+        if (e.code === 'Space' || e.key === 'ArrowUp' || e.key === 'w') {
+            e.preventDefault();
+            jump();
+        }
+    }
+
+    canvas.addEventListener('click', jump);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
+    document.addEventListener('keydown', onKey);
+
+    startBtn.onclick = () => {
+        if (running) return;
+        reset();
+        attempts++;
+        running = true;
+        startBtn.textContent = '🔺 Running...';
+        frameId = requestAnimationFrame(step);
+    };
+
+    reset();
+    attempts = 0;
+
+    // Draw initial screen
+    ctx.fillStyle = '#0a0a2e';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#b44aff';
+    ctx.fillRect(0, groundY, W, 2);
+    // Player preview
+    ctx.fillStyle = '#00ff88';
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 15;
+    ctx.fillRect(player.x - 10, groundY - 30, 20, 20);
+    ctx.shadowBlur = 0;
+    // Spike preview
+    ctx.fillStyle = '#ff4444';
+    ctx.beginPath();
+    ctx.moveTo(200, groundY - 30); ctx.lineTo(187, groundY); ctx.lineTo(213, groundY);
+    ctx.closePath(); ctx.fill();
+
+    ctx.font = 'bold 18px Orbitron, sans-serif';
+    ctx.fillStyle = '#b44aff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🔺 Geometry Dash', W / 2, H / 2 - 30);
+    ctx.font = '12px Rajdhani, sans-serif';
+    ctx.fillStyle = '#888';
+    ctx.fillText('Tap or press SPACE to jump!', W / 2, H / 2);
+
+    gameScoreDisplay.textContent = 'High: ' + getHigh('geodash');
+
+    gameCleanup = () => {
+        running = false;
+        cancelAnimationFrame(frameId);
+        document.removeEventListener('keydown', onKey);
     };
 }
