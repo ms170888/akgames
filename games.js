@@ -77,6 +77,7 @@ function launchGame(name) {
         case 'hideseek': initHideSeek(); break;
         case 'racing': initRacing(); break;
         case 'spotdiff': initSpotDiff(); break;
+        case 'tag': initTag(); break;
 
     }
 }
@@ -2075,5 +2076,351 @@ function initSpotDiff() {
     gameCleanup = () => {
         if (timerInterval) clearInterval(timerInterval);
         delete window._spotDiffCheck;
+    };
+}
+
+// ==================== TAG ====================
+function initTag() {
+    gameTitle.textContent = '🏃 Tag';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 320;
+    canvas.height = 400;
+    canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #00ff88;border-radius:12px;background:#1a1a2e;touch-action:none;';
+    const startBtn = document.createElement('button');
+    startBtn.textContent = '▶ Start!';
+    startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#00ff88,#00d4ff);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;';
+    const info = document.createElement('div');
+    info.style.cssText = 'text-align:center;color:#666;font-size:0.75rem;margin-top:8px;';
+    info.textContent = 'Arrow keys / WASD / tap to move. Tag everyone before time runs out!';
+
+    // Mobile D-pad
+    const dpad = document.createElement('div');
+    dpad.style.cssText = 'display:grid;grid-template-columns:50px 50px 50px;grid-template-rows:50px 50px 50px;justify-content:center;gap:4px;margin-top:10px;';
+    dpad.innerHTML = `
+        <div></div>
+        <button id="tag-up" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">⬆</button>
+        <div></div>
+        <button id="tag-left" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">⬅</button>
+        <div></div>
+        <button id="tag-right" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">➡</button>
+        <div></div>
+        <button id="tag-down" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">⬇</button>
+        <div></div>
+    `;
+
+    gameArea.appendChild(canvas);
+    gameArea.appendChild(startBtn);
+    gameArea.appendChild(dpad);
+    gameArea.appendChild(info);
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    const runnerEmojis = ['😀','😎','🤪','😜','🤓','😂','🥳','😏','🤡','👻','👾','🤖'];
+
+    let player, runners, tagged, level, score, timer, running, frameId, timerInterval;
+    let keys = { up: false, down: false, left: false, right: false };
+
+    function reset() {
+        level = 1;
+        score = 0;
+        running = false;
+    }
+
+    function startLevel() {
+        const numRunners = Math.min(3 + level, 10);
+        timer = 20 + level * 5;
+        tagged = 0;
+
+        player = { x: W / 2, y: H / 2, size: 20, speed: 3.5 };
+
+        runners = [];
+        for (let i = 0; i < numRunners; i++) {
+            runners.push({
+                x: Math.random() * (W - 40) + 20,
+                y: Math.random() * (H - 40) + 20,
+                size: 16,
+                speed: 1.2 + Math.random() * 0.8 + level * 0.15,
+                emoji: runnerEmojis[i % runnerEmojis.length],
+                tagged: false,
+                dx: (Math.random() - 0.5) * 2,
+                dy: (Math.random() - 0.5) * 2,
+                changeTimer: 0
+            });
+        }
+
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (!running) return;
+            timer--;
+            if (timer <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                running = false;
+                startBtn.textContent = '🔄 Try Again';
+                showGameOver('Time\'s Up!', score, 'tag', () => { reset(); });
+            }
+        }, 1000);
+
+        running = true;
+        startBtn.textContent = '🏃 Playing...';
+        frameId = requestAnimationFrame(step);
+    }
+
+    function step() {
+        if (!running) return;
+
+        // Move player
+        let dx = 0, dy = 0;
+        if (keys.up) dy -= player.speed;
+        if (keys.down) dy += player.speed;
+        if (keys.left) dx -= player.speed;
+        if (keys.right) dx += player.speed;
+
+        // Normalize diagonal
+        if (dx !== 0 && dy !== 0) {
+            dx *= 0.707;
+            dy *= 0.707;
+        }
+
+        player.x = Math.max(player.size, Math.min(W - player.size, player.x + dx));
+        player.y = Math.max(player.size, Math.min(H - player.size, player.y + dy));
+
+        // Move runners (they run away from player)
+        for (const r of runners) {
+            if (r.tagged) continue;
+
+            // Distance to player
+            const distX = r.x - player.x;
+            const distY = r.y - player.y;
+            const dist = Math.sqrt(distX * distX + distY * distY);
+
+            r.changeTimer--;
+
+            if (dist < 100) {
+                // Run away from player
+                const angle = Math.atan2(distY, distX);
+                r.dx = Math.cos(angle) * r.speed * 1.5;
+                r.dy = Math.sin(angle) * r.speed * 1.5;
+            } else if (r.changeTimer <= 0) {
+                // Random wandering
+                const angle = Math.random() * Math.PI * 2;
+                r.dx = Math.cos(angle) * r.speed;
+                r.dy = Math.sin(angle) * r.speed;
+                r.changeTimer = 30 + Math.random() * 60;
+            }
+
+            r.x += r.dx;
+            r.y += r.dy;
+
+            // Bounce off walls
+            if (r.x < r.size) { r.x = r.size; r.dx *= -1; }
+            if (r.x > W - r.size) { r.x = W - r.size; r.dx *= -1; }
+            if (r.y < r.size) { r.y = r.size; r.dy *= -1; }
+            if (r.y > H - r.size) { r.y = H - r.size; r.dy *= -1; }
+
+            // Check if tagged
+            if (dist < player.size + r.size) {
+                r.tagged = true;
+                tagged++;
+                score += 20 + level * 10;
+
+                // Check if all tagged
+                if (tagged >= runners.length) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    score += timer * 5;
+                    running = false;
+                    // Next level
+                    setTimeout(() => {
+                        level++;
+                        startLevel();
+                    }, 800);
+                    return;
+                }
+            }
+        }
+
+        // Draw
+        ctx.clearRect(0, 0, W, H);
+
+        // Draw grass field
+        ctx.fillStyle = '#0a2a0a';
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid lines for depth
+        ctx.strokeStyle = 'rgba(0,255,136,0.05)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 30) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+        for (let y = 0; y < H; y += 30) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+
+        // Draw tagged runners (faded)
+        for (const r of runners) {
+            if (!r.tagged) continue;
+            ctx.globalAlpha = 0.3;
+            ctx.font = `${r.size * 2}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(r.emoji, r.x, r.y);
+            ctx.globalAlpha = 1;
+            // Tag marker
+            ctx.font = '12px serif';
+            ctx.fillText('✅', r.x, r.y - r.size - 5);
+        }
+
+        // Draw active runners
+        for (const r of runners) {
+            if (r.tagged) continue;
+            ctx.font = `${r.size * 2}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(r.emoji, r.x, r.y);
+
+            // Exclamation if close to player
+            const distX = r.x - player.x;
+            const distY = r.y - player.y;
+            const dist = Math.sqrt(distX * distX + distY * distY);
+            if (dist < 80) {
+                ctx.font = '14px serif';
+                ctx.fillText('❗', r.x, r.y - r.size - 8);
+            }
+        }
+
+        // Draw player (YOU)
+        ctx.font = `${player.size * 2}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🫵', player.x, player.y);
+
+        // Glow around player
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.size + 5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,255,136,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // HUD
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(0, 0, W, 32);
+        ctx.font = 'bold 12px Orbitron, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#b44aff';
+        ctx.fillText('Lvl ' + level, 8, 9);
+        ctx.fillStyle = timer <= 5 ? '#ff4444' : '#00d4ff';
+        ctx.textAlign = 'center';
+        ctx.fillText('⏱ ' + timer + 's', W / 2, 9);
+        ctx.fillStyle = '#00ff88';
+        ctx.textAlign = 'right';
+        ctx.fillText(tagged + '/' + runners.length + ' tagged', W - 8, 9);
+
+        frameId = requestAnimationFrame(step);
+    }
+
+    function onKey(e) {
+        const down = e.type === 'keydown';
+        switch (e.key) {
+            case 'ArrowUp': case 'w': case 'W': keys.up = down; break;
+            case 'ArrowDown': case 's': case 'S': keys.down = down; break;
+            case 'ArrowLeft': case 'a': case 'A': keys.left = down; break;
+            case 'ArrowRight': case 'd': case 'D': keys.right = down; break;
+        }
+    }
+
+    // Touch: tap to move toward that point
+    let touchTarget = null;
+    canvas.addEventListener('touchstart', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        touchTarget = {
+            x: (e.touches[0].clientX - rect.left) * (W / rect.width),
+            y: (e.touches[0].clientY - rect.top) * (H / rect.height)
+        };
+    }, {passive: true});
+    canvas.addEventListener('touchmove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        touchTarget = {
+            x: (e.touches[0].clientX - rect.left) * (W / rect.width),
+            y: (e.touches[0].clientY - rect.top) * (H / rect.height)
+        };
+    }, {passive: true});
+    canvas.addEventListener('touchend', () => { touchTarget = null; }, {passive: true});
+
+    // Override step to also handle touch
+    const origStep = step;
+    const touchStep = () => {
+        if (touchTarget && running) {
+            const dx = touchTarget.x - player.x;
+            const dy = touchTarget.y - player.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 5) {
+                keys.up = dy < -5;
+                keys.down = dy > 5;
+                keys.left = dx < -5;
+                keys.right = dx > 5;
+            } else {
+                keys.up = keys.down = keys.left = keys.right = false;
+            }
+        } else if (!touchTarget) {
+            // Don't clear keys if using keyboard
+        }
+    };
+
+    // Wrap step with touch handling
+    const realStep = step;
+
+    // Mobile buttons
+    const btnUp = document.getElementById('tag-up');
+    const btnDown = document.getElementById('tag-down');
+    const btnLeft = document.getElementById('tag-left');
+    const btnRight = document.getElementById('tag-right');
+
+    function holdBtn(btn, key) {
+        let interval;
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+        btn.addEventListener('touchend', () => { keys[key] = false; });
+        btn.addEventListener('mousedown', () => { keys[key] = true; });
+        btn.addEventListener('mouseup', () => { keys[key] = false; });
+        btn.addEventListener('mouseleave', () => { keys[key] = false; });
+    }
+    if (btnUp) holdBtn(btnUp, 'up');
+    if (btnDown) holdBtn(btnDown, 'down');
+    if (btnLeft) holdBtn(btnLeft, 'left');
+    if (btnRight) holdBtn(btnRight, 'right');
+
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('keyup', onKey);
+
+    startBtn.onclick = () => {
+        if (running) return;
+        reset();
+        level = 1;
+        score = 0;
+        startLevel();
+    };
+
+    reset();
+
+    // Draw initial screen
+    ctx.fillStyle = '#0a2a0a';
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = 'bold 20px Orbitron, sans-serif';
+    ctx.fillStyle = '#00ff88';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🏃 Ready to Tag?', W / 2, H / 2);
+
+    gameScoreDisplay.textContent = 'High: ' + getHigh('tag');
+
+    gameCleanup = () => {
+        running = false;
+        cancelAnimationFrame(frameId);
+        if (timerInterval) clearInterval(timerInterval);
+        document.removeEventListener('keydown', onKey);
+        document.removeEventListener('keyup', onKey);
     };
 }
