@@ -89,6 +89,7 @@ function launchGame(name) {
         case 'redgreenlight': initRedGreenLight(); break;
         case 'hittarget': initHitTarget(); break;
         case 'ludo': initLudo(); break;
+        case 'connect4': initConnect4(); break;
 
     }
 }
@@ -7417,3 +7418,419 @@ function initLudo() {
     };
 }
 
+
+// ==================== FOUR IN A ROW (Connect 4) ====================
+function initConnect4() {
+    gameTitle.textContent = '🔴 Four in a Row';
+    const best = getHigh('connect4');
+    gameScoreDisplay.textContent = best ? 'Wins: ' + best : '';
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioCtx();
+    function playTone(freq, dur, type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.value = freq;
+        gain.gain.value = 0.12;
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.stop(audioCtx.currentTime + dur);
+    }
+    function dropSound() { playTone(300, 0.1, 'triangle'); setTimeout(() => playTone(200, 0.08, 'sine'), 80); }
+    function winSound() { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.2, 'sine'), i*120)); }
+    function drawSound() { playTone(250, 0.3, 'sawtooth'); }
+
+    const ROWS = 6, COLS = 7;
+    let board = [];
+    let currentPlayer = 1; // 1 = red (human), 2 = yellow (AI)
+    let gameOver = false;
+    let winCells = [];
+    let canvas, ctx, W, H;
+    let cellSize, boardX, boardY;
+    let hoverCol = -1;
+    let dropping = false;
+    let dropCol = -1, dropRow = -1, dropY = 0, dropTarget = 0, dropPlayer = 0;
+    let frameId;
+    let running = false;
+    let difficulty = 'medium';
+    let phase = 'menu';
+
+    gameArea.innerHTML = '<canvas id="c4-canvas" style="width:100%;height:100%;display:block;border-radius:12px;cursor:pointer;"></canvas>';
+    canvas = document.getElementById('c4-canvas');
+    ctx = canvas.getContext('2d');
+
+    function resize() {
+        const rect = gameArea.getBoundingClientRect();
+        W = canvas.width = rect.width;
+        H = canvas.height = rect.height;
+        cellSize = Math.min((W - 40) / COLS, (H - 120) / (ROWS + 1));
+        boardX = (W - cellSize * COLS) / 2;
+        boardY = 80;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function resetBoard() {
+        board = [];
+        for (let r = 0; r < ROWS; r++) {
+            board[r] = [];
+            for (let c = 0; c < COLS; c++) board[r][c] = 0;
+        }
+        currentPlayer = 1;
+        gameOver = false;
+        winCells = [];
+        hoverCol = -1;
+        dropping = false;
+    }
+
+    function getRow(col) {
+        for (let r = ROWS - 1; r >= 0; r--) {
+            if (board[r][col] === 0) return r;
+        }
+        return -1;
+    }
+
+    function checkWin(p) {
+        // Horizontal
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c <= COLS - 4; c++) {
+                if (board[r][c]===p && board[r][c+1]===p && board[r][c+2]===p && board[r][c+3]===p) {
+                    return [[r,c],[r,c+1],[r,c+2],[r,c+3]];
+                }
+            }
+        }
+        // Vertical
+        for (let r = 0; r <= ROWS - 4; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (board[r][c]===p && board[r+1][c]===p && board[r+2][c]===p && board[r+3][c]===p) {
+                    return [[r,c],[r+1,c],[r+2,c],[r+3,c]];
+                }
+            }
+        }
+        // Diagonal down-right
+        for (let r = 0; r <= ROWS - 4; r++) {
+            for (let c = 0; c <= COLS - 4; c++) {
+                if (board[r][c]===p && board[r+1][c+1]===p && board[r+2][c+2]===p && board[r+3][c+3]===p) {
+                    return [[r,c],[r+1,c+1],[r+2,c+2],[r+3,c+3]];
+                }
+            }
+        }
+        // Diagonal down-left
+        for (let r = 0; r <= ROWS - 4; r++) {
+            for (let c = 3; c < COLS; c++) {
+                if (board[r][c]===p && board[r+1][c-1]===p && board[r+2][c-2]===p && board[r+3][c-3]===p) {
+                    return [[r,c],[r+1,c-1],[r+2,c-2],[r+3,c-3]];
+                }
+            }
+        }
+        return null;
+    }
+
+    function isBoardFull() {
+        for (let c = 0; c < COLS; c++) if (board[0][c] === 0) return false;
+        return true;
+    }
+
+    function scorePosition(b, p) {
+        let score = 0;
+        // Center column preference
+        for (let r = 0; r < ROWS; r++) if (b[r][3] === p) score += 3;
+
+        function evalWindow(cells) {
+            let mine = 0, opp = 0, empty = 0;
+            const op = p === 1 ? 2 : 1;
+            cells.forEach(v => { if (v===p) mine++; else if (v===op) opp++; else empty++; });
+            if (mine === 4) return 100;
+            if (mine === 3 && empty === 1) return 5;
+            if (mine === 2 && empty === 2) return 2;
+            if (opp === 3 && empty === 1) return -4;
+            return 0;
+        }
+        // Horizontal
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c <= COLS-4; c++) score += evalWindow([b[r][c],b[r][c+1],b[r][c+2],b[r][c+3]]);
+        // Vertical
+        for (let r = 0; r <= ROWS-4; r++) for (let c = 0; c < COLS; c++) score += evalWindow([b[r][c],b[r+1][c],b[r+2][c],b[r+3][c]]);
+        // Diagonals
+        for (let r = 0; r <= ROWS-4; r++) for (let c = 0; c <= COLS-4; c++) score += evalWindow([b[r][c],b[r+1][c+1],b[r+2][c+2],b[r+3][c+3]]);
+        for (let r = 0; r <= ROWS-4; r++) for (let c = 3; c < COLS; c++) score += evalWindow([b[r][c],b[r+1][c-1],b[r+2][c-2],b[r+3][c-3]]);
+        return score;
+    }
+
+    function minimax(b, depth, alpha, beta, maximizing) {
+        const p1win = checkWinBoard(b, 2);
+        const p2win = checkWinBoard(b, 1);
+        if (p1win) return [null, 100000];
+        if (p2win) return [null, -100000];
+        let full = true;
+        for (let c = 0; c < COLS; c++) if (b[0][c]===0) { full = false; break; }
+        if (full || depth === 0) return [null, scorePosition(b, 2)];
+
+        if (maximizing) {
+            let best = -Infinity, bestCol = 3;
+            for (let c = 0; c < COLS; c++) {
+                let r = -1;
+                for (let rr = ROWS-1; rr >= 0; rr--) { if (b[rr][c]===0) { r = rr; break; } }
+                if (r === -1) continue;
+                const nb = b.map(row => [...row]);
+                nb[r][c] = 2;
+                const [, sc] = minimax(nb, depth-1, alpha, beta, false);
+                if (sc > best) { best = sc; bestCol = c; }
+                alpha = Math.max(alpha, best);
+                if (alpha >= beta) break;
+            }
+            return [bestCol, best];
+        } else {
+            let best = Infinity, bestCol = 3;
+            for (let c = 0; c < COLS; c++) {
+                let r = -1;
+                for (let rr = ROWS-1; rr >= 0; rr--) { if (b[rr][c]===0) { r = rr; break; } }
+                if (r === -1) continue;
+                const nb = b.map(row => [...row]);
+                nb[r][c] = 1;
+                const [, sc] = minimax(nb, depth-1, alpha, beta, true);
+                if (sc < best) { best = sc; bestCol = c; }
+                beta = Math.min(beta, best);
+                if (alpha >= beta) break;
+            }
+            return [bestCol, best];
+        }
+    }
+
+    function checkWinBoard(b, p) {
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c <= COLS-4; c++) if (b[r][c]===p&&b[r][c+1]===p&&b[r][c+2]===p&&b[r][c+3]===p) return true;
+        for (let r = 0; r <= ROWS-4; r++) for (let c = 0; c < COLS; c++) if (b[r][c]===p&&b[r+1][c]===p&&b[r+2][c]===p&&b[r+3][c]===p) return true;
+        for (let r = 0; r <= ROWS-4; r++) for (let c = 0; c <= COLS-4; c++) if (b[r][c]===p&&b[r+1][c+1]===p&&b[r+2][c+2]===p&&b[r+3][c+3]===p) return true;
+        for (let r = 0; r <= ROWS-4; r++) for (let c = 3; c < COLS; c++) if (b[r][c]===p&&b[r+1][c-1]===p&&b[r+2][c-2]===p&&b[r+3][c-3]===p) return true;
+        return false;
+    }
+
+    function aiMove() {
+        const depths = { easy: 1, medium: 3, hard: 5 };
+        const [col] = minimax(board.map(r=>[...r]), depths[difficulty], -Infinity, Infinity, true);
+        return col !== null ? col : 3;
+    }
+
+    function drawBoard() {
+        // Background
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, W, H);
+
+        // Turn indicator
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 20px Orbitron, sans-serif';
+        if (gameOver) {
+            if (winCells.length > 0) {
+                const winner = currentPlayer === 1 ? 2 : 1;
+                ctx.fillStyle = winner === 1 ? '#ff4444' : '#ffdd00';
+                ctx.fillText(winner === 1 ? '🎉 YOU WIN!' : '🤖 AI WINS!', W/2, 35);
+            } else {
+                ctx.fillStyle = '#aaa';
+                ctx.fillText("It's a DRAW!", W/2, 35);
+            }
+            ctx.font = '14px Rajdhani, sans-serif';
+            ctx.fillStyle = '#888';
+            ctx.fillText('Tap to play again', W/2, 58);
+        } else if (!dropping) {
+            ctx.fillStyle = currentPlayer === 1 ? '#ff4444' : '#ffdd00';
+            ctx.fillText(currentPlayer === 1 ? '🔴 Your Turn!' : '🟡 AI Thinking...', W/2, 35);
+        }
+        ctx.textAlign = 'left';
+
+        // Board frame
+        ctx.fillStyle = '#1a3a8a';
+        const pad = 8;
+        ctx.beginPath();
+        ctx.roundRect(boardX - pad, boardY - pad, cellSize * COLS + pad*2, cellSize * ROWS + pad*2, 12);
+        ctx.fill();
+
+        // Hover preview
+        if (hoverCol >= 0 && !gameOver && !dropping && currentPlayer === 1) {
+            const hx = boardX + hoverCol * cellSize + cellSize/2;
+            ctx.beginPath();
+            ctx.arc(hx, boardY - cellSize/2 - pad, cellSize * 0.38, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(255,68,68,0.5)';
+            ctx.fill();
+        }
+
+        // Cells
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const cx = boardX + c * cellSize + cellSize/2;
+                const cy = boardY + r * cellSize + cellSize/2;
+                const rad = cellSize * 0.4;
+
+                ctx.beginPath();
+                ctx.arc(cx, cy, rad, 0, Math.PI*2);
+
+                const isWin = winCells.some(w => w[0]===r && w[1]===c);
+                if (board[r][c] === 1) {
+                    ctx.fillStyle = isWin ? '#ff8888' : '#ff4444';
+                    ctx.fill();
+                    if (isWin) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke(); }
+                } else if (board[r][c] === 2) {
+                    ctx.fillStyle = isWin ? '#ffee88' : '#ffdd00';
+                    ctx.fill();
+                    if (isWin) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke(); }
+                } else {
+                    ctx.fillStyle = '#0a1a4a';
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Dropping animation
+        if (dropping) {
+            const cx = boardX + dropCol * cellSize + cellSize/2;
+            ctx.beginPath();
+            ctx.arc(cx, dropY, cellSize * 0.4, 0, Math.PI*2);
+            ctx.fillStyle = dropPlayer === 1 ? '#ff4444' : '#ffdd00';
+            ctx.fill();
+        }
+
+        // Difficulty at bottom
+        if (!gameOver && !dropping) {
+            ctx.textAlign = 'center';
+            ctx.font = '12px Rajdhani, sans-serif';
+            ctx.fillStyle = '#555';
+            ctx.fillText(difficulty.toUpperCase(), W/2, H - 10);
+            ctx.textAlign = 'left';
+        }
+    }
+
+    function drawMenu() {
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, W, H);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 32px Orbitron, sans-serif';
+        ctx.fillText('🔴 Four in a Row', W/2, H*0.2);
+        ctx.font = '16px Rajdhani, sans-serif';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText('Drop pieces, connect 4 to win!', W/2, H*0.28);
+        ctx.fillText('You are 🔴 Red, AI is 🟡 Yellow', W/2, H*0.34);
+
+        const bw = 90, bh = 36, gap = 15;
+        const startX = W/2 - (bw*3 + gap*2)/2;
+        ['Easy','Medium','Hard'].forEach((d, i) => {
+            const x = startX + i*(bw+gap);
+            const y = H*0.42;
+            const sel = d.toLowerCase() === difficulty;
+            ctx.fillStyle = sel ? (i===0?'#00ff88':i===1?'#00d4ff':'#ff4444') : '#333';
+            ctx.beginPath(); ctx.roundRect(x, y, bw, bh, 8); ctx.fill();
+            ctx.fillStyle = sel ? '#000' : '#aaa';
+            ctx.font = (sel?'bold ':'')+'16px Rajdhani, sans-serif';
+            ctx.fillText(d, x+bw/2, y+24);
+        });
+
+        ctx.fillStyle = '#00ff88';
+        ctx.beginPath(); ctx.roundRect(W/2-70, H*0.55, 140, 50, 12); ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 22px Orbitron, sans-serif';
+        ctx.fillText('▶ START', W/2, H*0.55+35);
+        ctx.textAlign = 'left';
+    }
+
+    function update() {
+        if (!running) return;
+        frameId = requestAnimationFrame(update);
+        if (phase === 'menu') { drawMenu(); return; }
+
+        if (dropping) {
+            dropY += 12;
+            if (dropY >= boardY + dropRow * cellSize + cellSize/2) {
+                dropY = boardY + dropRow * cellSize + cellSize/2;
+                board[dropRow][dropCol] = dropPlayer;
+                dropping = false;
+                dropSound();
+
+                const w = checkWin(dropPlayer);
+                if (w) {
+                    winCells = w;
+                    gameOver = true;
+                    if (dropPlayer === 1) {
+                        winSound();
+                        const wins = getHigh('connect4') + 1;
+                        setHigh('connect4', wins);
+                        gameScoreDisplay.textContent = 'Wins: ' + wins;
+                    }
+                } else if (isBoardFull()) {
+                    gameOver = true;
+                    drawSound();
+                } else {
+                    currentPlayer = currentPlayer === 1 ? 2 : 1;
+                    if (currentPlayer === 2 && !gameOver) {
+                        setTimeout(doAiMove, 400);
+                    }
+                }
+            }
+        }
+        drawBoard();
+    }
+
+    function dropPiece(col, player) {
+        const row = getRow(col);
+        if (row === -1) return false;
+        dropping = true;
+        dropCol = col;
+        dropRow = row;
+        dropY = boardY - cellSize/2;
+        dropPlayer = player;
+        return true;
+    }
+
+    function doAiMove() {
+        if (gameOver || !running) return;
+        const col = aiMove();
+        dropPiece(col, 2);
+    }
+
+    function onClick(e) {
+        const rect = canvas.getBoundingClientRect();
+        const mx = ((e.clientX || (e.touches&&e.touches[0]&&e.touches[0].clientX)) - rect.left) / rect.width * W;
+        const my = ((e.clientY || (e.touches&&e.touches[0]&&e.touches[0].clientY)) - rect.top) / rect.height * H;
+
+        if (phase === 'menu') {
+            const bw = 90, bh = 36, gap = 15;
+            const startX = W/2 - (bw*3+gap*2)/2;
+            ['easy','medium','hard'].forEach((d,i) => {
+                const x = startX+i*(bw+gap), y = H*0.42;
+                if (mx>=x&&mx<=x+bw&&my>=y&&my<=y+bh) difficulty = d;
+            });
+            if (mx>=W/2-70&&mx<=W/2+70&&my>=H*0.55&&my<=H*0.55+50) {
+                phase = 'play';
+                resetBoard();
+            }
+            return;
+        }
+
+        if (gameOver) { phase = 'menu'; return; }
+        if (dropping || currentPlayer !== 1) return;
+
+        const col = Math.floor((mx - boardX) / cellSize);
+        if (col < 0 || col >= COLS) return;
+        dropPiece(col, 1);
+    }
+
+    function onMove(e) {
+        if (phase !== 'play' || gameOver || dropping || currentPlayer !== 1) { hoverCol = -1; return; }
+        const rect = canvas.getBoundingClientRect();
+        const mx = ((e.clientX || (e.touches&&e.touches[0]&&e.touches[0].clientX)) - rect.left) / rect.width * W;
+        hoverCol = Math.floor((mx - boardX) / cellSize);
+        if (hoverCol < 0 || hoverCol >= COLS) hoverCol = -1;
+    }
+
+    canvas.addEventListener('click', onClick);
+    canvas.addEventListener('touchstart', function(e) { e.preventDefault(); onClick(e); }, {passive:false});
+    canvas.addEventListener('mousemove', onMove);
+
+    running = true;
+    phase = 'menu';
+    update();
+
+    gameCleanup = () => {
+        running = false;
+        cancelAnimationFrame(frameId);
+        window.removeEventListener('resize', resize);
+    };
+}
