@@ -74,7 +74,7 @@ function launchGame(name) {
         case 'shooter': initShooter(); break;
         case 'pong': initPong(); break;
         case 'bingo': initBingo(); break;
-        case 'talkingtom': initTalkingCat(); break;
+
     }
 }
 
