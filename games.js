@@ -92,6 +92,7 @@ function launchGame(name) {
         case 'connect4': initConnect4(); break;
         case 'chess': initChess(); break;
         case 'basketball': initBasketball(); break;
+        case 'soccer': initSoccer(); break;
 
     }
 }
@@ -9400,6 +9401,445 @@ function initBasketball() {
         running = false;
         cancelAnimationFrame(frameId);
         if (timerInterval) clearInterval(timerInterval);
+        window.removeEventListener('resize', resize);
+    };
+}
+
+// ==================== SOCCER (Penalty Kicks) ====================
+function initSoccer() {
+    gameTitle.textContent = 'Soccer';
+    const best = getHigh('soccer');
+    gameScoreDisplay.textContent = best ? 'Best: ' + best : '';
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioCtx();
+    function playTone(freq, dur, type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.value = freq;
+        gain.gain.value = 0.12;
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.stop(audioCtx.currentTime + dur);
+    }
+    function goalSound() { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.15, 'sine'), i*100)); }
+    function saveSound() { playTone(200, 0.3, 'sawtooth'); }
+    function kickSound() { playTone(150, 0.08, 'triangle'); setTimeout(() => playTone(250, 0.06, 'sine'), 50); }
+    function postSound() { playTone(800, 0.2, 'triangle'); }
+    function crowdSound() { playTone(300, 0.5, 'sawtooth'); }
+
+    let canvas, ctx, W, H, frameId, running = false;
+    let phase = 'menu';
+    let score = 0, round = 0, maxRounds = 10;
+    let difficulty = 'medium';
+    let ball, goal, keeper, aiming = false, kicked = false;
+    let dragStart = null, dragEnd = null, dragging = false;
+    let resultText = '', resultTimer = 0, resultColor = '';
+
+    const DIFF = {
+        easy:   { keeperSpeed: 1.5, keeperW: 50, rounds: 10, goalW: 280 },
+        medium: { keeperSpeed: 2.5, keeperW: 60, rounds: 10, goalW: 260 },
+        hard:   { keeperSpeed: 4.0, keeperW: 75, rounds: 10, goalW: 240 }
+    };
+
+    gameArea.innerHTML = '<canvas id="sc-canvas" style="width:100%;height:100%;display:block;border-radius:12px;cursor:pointer;touch-action:none;"></canvas>';
+    canvas = document.getElementById('sc-canvas');
+    ctx = canvas.getContext('2d');
+
+    function resize() {
+        const rect = gameArea.getBoundingClientRect();
+        W = canvas.width = rect.width;
+        H = canvas.height = Math.max(rect.height, 480);
+        canvas.style.height = H + 'px';
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function resetRound() {
+        const s = DIFF[difficulty];
+        ball = { x: W/2, y: H - 80, r: 14, vx: 0, vy: 0, flying: false, trail: [], scale: 1 };
+        goal = { x: W/2, y: 80, w: s.goalW, h: 80 };
+        keeper = { x: W/2, y: goal.y + goal.h - 30, w: s.keeperW, h: 40, dir: 1, speed: s.keeperSpeed };
+        kicked = false;
+        aiming = true;
+        phase = 'aiming';
+    }
+
+    function startGame() {
+        const s = DIFF[difficulty];
+        score = 0; round = 0; maxRounds = s.rounds;
+        resetRound();
+    }
+
+    function endGame() {
+        phase = 'gameover';
+        const isNew = setHigh('soccer', score);
+        if (isNew) gameScoreDisplay.textContent = 'Best: ' + score;
+        if (score >= 7) crowdSound();
+    }
+
+    function drawField() {
+        // Grass
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, '#1a3a1a');
+        grad.addColorStop(0.3, '#2a5a2a');
+        grad.addColorStop(1, '#3a7a3a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Grass stripes
+        for (let i = 0; i < H; i += 40) {
+            ctx.fillStyle = i % 80 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)';
+            ctx.fillRect(0, i, W, 20);
+        }
+
+        // Center circle
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(W/2, H/2, 60, 0, Math.PI*2);
+        ctx.stroke();
+
+        // Penalty box
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.strokeRect(W/2 - 150, 0, 300, 200);
+        ctx.strokeRect(W/2 - 80, 0, 160, 100);
+    }
+
+    function drawGoal() {
+        if (!goal) return;
+        const gx = goal.x - goal.w/2;
+        const gy = goal.y;
+
+        // Goal posts
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(gx - 6, gy, 6, goal.h);
+        ctx.fillRect(gx + goal.w, gy, 6, goal.h);
+        // Crossbar
+        ctx.fillRect(gx - 6, gy - 6, goal.w + 12, 6);
+
+        // Net
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1;
+        for (let nx = gx; nx <= gx + goal.w; nx += 15) {
+            ctx.beginPath(); ctx.moveTo(nx, gy); ctx.lineTo(nx, gy + goal.h); ctx.stroke();
+        }
+        for (let ny = gy; ny <= gy + goal.h; ny += 15) {
+            ctx.beginPath(); ctx.moveTo(gx, ny); ctx.lineTo(gx + goal.w, ny); ctx.stroke();
+        }
+
+        // Green behind net
+        ctx.fillStyle = 'rgba(0,50,0,0.5)';
+        ctx.fillRect(gx, gy, goal.w, goal.h);
+    }
+
+    function drawKeeper() {
+        if (!keeper) return;
+        // Body
+        ctx.fillStyle = '#ffdd00';
+        ctx.fillRect(keeper.x - keeper.w/2, keeper.y - keeper.h/2, keeper.w, keeper.h);
+        // Shirt
+        ctx.fillStyle = '#ff4444';
+        ctx.fillRect(keeper.x - keeper.w/2 + 5, keeper.y - keeper.h/2 + 5, keeper.w - 10, keeper.h/2);
+        // Head
+        ctx.beginPath();
+        ctx.arc(keeper.x, keeper.y - keeper.h/2 - 8, 10, 0, Math.PI*2);
+        ctx.fillStyle = '#ffcc99';
+        ctx.fill();
+        // Gloves
+        ctx.fillStyle = '#00cc00';
+        ctx.fillRect(keeper.x - keeper.w/2 - 8, keeper.y - 10, 10, 15);
+        ctx.fillRect(keeper.x + keeper.w/2 - 2, keeper.y - 10, 10, 15);
+    }
+
+    function drawBall() {
+        if (!ball) return;
+        // Trail
+        for (let i = 0; i < ball.trail.length; i++) {
+            const t = ball.trail[i];
+            ctx.globalAlpha = i / ball.trail.length * 0.3;
+            ctx.beginPath();
+            ctx.arc(t.x, t.y, ball.r * t.s * 0.7, 0, Math.PI*2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // Ball shadow
+        ctx.beginPath();
+        ctx.ellipse(ball.x + 3, ball.y + 3, ball.r * ball.scale, ball.r * ball.scale * 0.6, 0, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fill();
+
+        // Ball
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r * ball.scale, 0, Math.PI*2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Pentagon pattern
+        ctx.fillStyle = '#333';
+        ctx.beginPath();
+        ctx.arc(ball.x - 3, ball.y - 2, ball.r * ball.scale * 0.25, 0, Math.PI*2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(ball.x + 4, ball.y + 3, ball.r * ball.scale * 0.2, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    function drawAim() {
+        if (phase !== 'aiming' || !dragging || !dragStart || !dragEnd) return;
+        const dx = dragStart.x - dragEnd.x;
+        const dy = dragStart.y - dragEnd.y;
+        const power = Math.min(Math.sqrt(dx*dx + dy*dy), 200);
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6,4]);
+        ctx.beginPath();
+        ctx.moveTo(ball.x, ball.y);
+        ctx.lineTo(ball.x + dx * 2, ball.y + dy * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const pct = power / 200;
+        ctx.fillStyle = pct < 0.4 ? '#00ff88' : pct < 0.7 ? '#ffaa00' : '#ff4444';
+        ctx.font = 'bold 14px Orbitron, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(Math.round(pct * 100) + '%', ball.x, ball.y + 30);
+        ctx.textAlign = 'left';
+    }
+
+    function drawHUD() {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 18px Orbitron, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Goals: ' + score, 15, 30);
+        ctx.textAlign = 'right';
+        ctx.fillText('Round: ' + round + '/' + maxRounds, W - 15, 30);
+        ctx.textAlign = 'left';
+    }
+
+    function drawResultText() {
+        if (resultTimer <= 0) return;
+        resultTimer--;
+        ctx.globalAlpha = Math.min(1, resultTimer / 20);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 36px Orbitron, sans-serif';
+        ctx.fillStyle = resultColor;
+        ctx.fillText(resultText, W/2, H/2);
+        ctx.globalAlpha = 1;
+        ctx.textAlign = 'left';
+        if (resultTimer <= 0) {
+            if (round >= maxRounds) endGame();
+            else resetRound();
+        }
+    }
+
+    function drawMenu() {
+        ctx.fillStyle = '#1a3a1a';
+        ctx.fillRect(0, 0, W, H);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 32px Orbitron, sans-serif';
+        ctx.fillText('Soccer', W/2, H*0.12);
+        ctx.font = '50px serif';
+        ctx.fillText('⚽', W/2, H*0.22);
+        ctx.font = '14px Rajdhani, sans-serif';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText('Drag back and release to kick!', W/2, H*0.30);
+
+        const bw = 90, bh = 36;
+        const startY = H * 0.36;
+        const sx = W/2 - (bw*3+20)/2;
+        ['Easy','Medium','Hard'].forEach((d,i) => {
+            const x = sx + i*(bw+10);
+            const sel = d.toLowerCase() === difficulty;
+            ctx.fillStyle = sel ? (i===0?'#00ff88':i===1?'#00d4ff':'#ff4444') : '#333';
+            ctx.beginPath(); ctx.roundRect(x, startY, bw, bh, 8); ctx.fill();
+            ctx.fillStyle = sel ? '#000' : '#aaa';
+            ctx.font = (sel?'bold ':'')+'16px Rajdhani, sans-serif';
+            ctx.fillText(d, x+bw/2, startY+24);
+        });
+
+        const btnY = startY + bh + 25;
+        ctx.fillStyle = '#00ff88';
+        ctx.beginPath(); ctx.roundRect(W/2-70, btnY, 140, 50, 12); ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 22px Orbitron, sans-serif';
+        ctx.fillText('KICK OFF!', W/2, btnY+35);
+        ctx.textAlign = 'left';
+        canvas._menuData = { bw, bh, sx, startY, btnY };
+    }
+
+    function drawGameOver() {
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 36px Orbitron, sans-serif';
+        ctx.fillStyle = score >= 7 ? '#00ff88' : score >= 4 ? '#ffaa00' : '#ff4444';
+        ctx.fillText(score >= 7 ? 'CHAMPION!' : score >= 4 ? 'Good game!' : 'Keep trying!', W/2, H*0.25);
+        ctx.fillStyle = '#fff';
+        ctx.font = '24px Orbitron, sans-serif';
+        ctx.fillText('Goals: ' + score + ' / ' + maxRounds, W/2, H*0.38);
+
+        if (score >= getHigh('soccer')) {
+            ctx.fillStyle = '#ffdd00'; ctx.font = '16px Rajdhani, sans-serif';
+            ctx.fillText('NEW HIGH SCORE!', W/2, H*0.47);
+        }
+
+        ctx.fillStyle = '#00d4ff';
+        ctx.beginPath(); ctx.roundRect(W/2-70, H*0.55, 140, 50, 12); ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 20px Orbitron, sans-serif';
+        ctx.fillText('RETRY', W/2, H*0.55+35);
+        ctx.textAlign = 'left';
+    }
+
+    function update() {
+        if (!running) return;
+        frameId = requestAnimationFrame(update);
+
+        if (phase === 'menu') { drawMenu(); return; }
+        if (phase === 'gameover') { drawGameOver(); return; }
+
+        // Move keeper
+        if (keeper && !kicked) {
+            keeper.x += keeper.speed * keeper.dir;
+            const gLeft = goal.x - goal.w/2 + keeper.w/2 + 10;
+            const gRight = goal.x + goal.w/2 - keeper.w/2 - 10;
+            if (keeper.x > gRight) keeper.dir = -1;
+            if (keeper.x < gLeft) keeper.dir = 1;
+        }
+
+        // Ball physics
+        if (ball && ball.flying) {
+            ball.trail.push({ x: ball.x, y: ball.y, s: ball.scale });
+            if (ball.trail.length > 10) ball.trail.shift();
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+            ball.scale = Math.max(0.5, ball.scale - 0.003); // shrink as it goes far
+
+            // Keeper dive (after kick)
+            if (kicked && keeper) {
+                const kdx = ball.x - keeper.x;
+                keeper.x += Math.sign(kdx) * keeper.speed * 1.5;
+            }
+
+            // Check goal
+            if (ball.y <= goal.y + goal.h && ball.y >= goal.y) {
+                const gLeft = goal.x - goal.w/2;
+                const gRight = goal.x + goal.w/2;
+
+                // Hit post?
+                if (Math.abs(ball.x - gLeft) < 8 || Math.abs(ball.x - gRight) < 8 || ball.y <= goal.y + 5) {
+                    ball.flying = false;
+                    postSound();
+                    resultText = 'HIT THE POST!'; resultColor = '#ffaa00'; resultTimer = 50;
+                    phase = 'result';
+                }
+                // Saved by keeper?
+                else if (keeper && Math.abs(ball.x - keeper.x) < keeper.w/2 + ball.r && Math.abs(ball.y - keeper.y) < keeper.h/2 + ball.r) {
+                    ball.flying = false;
+                    saveSound();
+                    resultText = 'SAVED!'; resultColor = '#ff4444'; resultTimer = 50;
+                    phase = 'result';
+                }
+                // GOAL!
+                else if (ball.x > gLeft + 8 && ball.x < gRight - 8) {
+                    ball.flying = false;
+                    score++;
+                    goalSound();
+                    resultText = 'GOAL!!!'; resultColor = '#00ff88'; resultTimer = 60;
+                    phase = 'result';
+                }
+            }
+
+            // Miss (over the bar or wide)
+            if (ball.y < goal.y - 30 || ball.x < -50 || ball.x > W + 50) {
+                ball.flying = false;
+                saveSound();
+                resultText = 'MISS!'; resultColor = '#ff4444'; resultTimer = 50;
+                phase = 'result';
+            }
+        }
+
+        drawField();
+        drawGoal();
+        drawKeeper();
+        drawBall();
+        drawAim();
+        drawHUD();
+        drawResultText();
+    }
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const cx = (e.touches ? e.touches[0].clientX : e.clientX);
+        const cy = (e.touches ? e.touches[0].clientY : e.clientY);
+        return { x: (cx - rect.left)/rect.width*W, y: (cy - rect.top)/rect.height*H };
+    }
+
+    function onDown(e) {
+        e.preventDefault();
+        const pos = getPos(e);
+        if (phase === 'menu') {
+            const m = canvas._menuData;
+            if (m) {
+                ['easy','medium','hard'].forEach((d,i) => {
+                    const x = m.sx + i*(m.bw+10);
+                    if (pos.x>=x && pos.x<=x+m.bw && pos.y>=m.startY && pos.y<=m.startY+m.bh) difficulty = d;
+                });
+                if (pos.x>=W/2-70 && pos.x<=W/2+70 && pos.y>=m.btnY && pos.y<=m.btnY+50) startGame();
+            }
+            return;
+        }
+        if (phase === 'gameover') {
+            if (pos.x>=W/2-70 && pos.x<=W/2+70 && pos.y>=H*0.55 && pos.y<=H*0.55+50) phase = 'menu';
+            return;
+        }
+        if (phase === 'aiming' && ball) {
+            const dx = pos.x - ball.x, dy = pos.y - ball.y;
+            if (Math.sqrt(dx*dx+dy*dy) < 60) {
+                dragging = true;
+                dragStart = { x: ball.x, y: ball.y };
+                dragEnd = pos;
+            }
+        }
+    }
+    function onMove(e) { e.preventDefault(); if (dragging) dragEnd = getPos(e); }
+    function onUp(e) {
+        e.preventDefault();
+        if (!dragging || !dragStart || !dragEnd || !ball) { dragging = false; return; }
+        dragging = false;
+        const dx = dragStart.x - dragEnd.x, dy = dragStart.y - dragEnd.y;
+        const power = Math.min(Math.sqrt(dx*dx+dy*dy), 200);
+        if (power < 15) return;
+        ball.vx = dx * 0.06;
+        ball.vy = dy * 0.06;
+        ball.flying = true;
+        ball.trail = [];
+        kicked = true;
+        round++;
+        kickSound();
+        phase = 'flying';
+    }
+
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('touchstart', onDown, {passive:false});
+    canvas.addEventListener('touchmove', onMove, {passive:false});
+    canvas.addEventListener('touchend', onUp, {passive:false});
+
+    running = true; phase = 'menu'; update();
+
+    gameCleanup = () => {
+        running = false;
+        cancelAnimationFrame(frameId);
         window.removeEventListener('resize', resize);
     };
 }
