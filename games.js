@@ -1,5 +1,5 @@
-/* ========================================================
-   AK GAMES — 7 Browser Games for Maaz
+﻿/* ========================================================
+   AK GAMES â€” 7 Browser Games for Maaz
    Pure vanilla JS, no dependencies
    ======================================================== */
 
@@ -113,17 +113,17 @@ function showGameOver(title, score, highKey, onRestart) {
     overlay.innerHTML = `
         <h2>${title}</h2>
         <div class="final-score">Score: ${score}</div>
-        <div class="high-score">🏆 Best: ${hi}${isNew ? ' — NEW RECORD!' : ''}</div>
+        <div class="high-score">ðŸ† Best: ${hi}${isNew ? ' â€” NEW RECORD!' : ''}</div>
     `;
     const btn = document.createElement('button');
     btn.className = 'game-btn';
-    btn.textContent = '🔄 Play Again';
+    btn.textContent = 'ðŸ”„ Play Again';
     btn.onclick = () => { overlay.remove(); onRestart(); };
     overlay.appendChild(btn);
 
     const menuBtn = document.createElement('button');
     menuBtn.className = 'game-btn';
-    menuBtn.textContent = '🏠 Menu';
+    menuBtn.textContent = 'ðŸ  Menu';
     menuBtn.onclick = () => { overlay.remove(); backToMenu(); };
     overlay.appendChild(menuBtn);
 
@@ -133,7 +133,7 @@ function showGameOver(title, score, highKey, onRestart) {
 
 // ==================== 1. SNAKE ====================
 function initSnake() {
-    gameTitle.textContent = '🐍 Snake';
+    gameTitle.textContent = 'ðŸ Snake';
     const SIZE = 20;
     const canvas = document.createElement('canvas');
     canvas.className = 'game-canvas';
@@ -148,16 +148,16 @@ function initSnake() {
 
     const startBtn = document.createElement('button');
     startBtn.className = 'game-btn';
-    startBtn.textContent = '▶ Start';
+    startBtn.textContent = 'â–¶ Start';
 
     // Mobile controls
     const mobileControls = document.createElement('div');
     mobileControls.style.cssText = 'display:grid;grid-template-columns:repeat(3,60px);grid-template-rows:repeat(2,50px);gap:4px;margin-top:12px;justify-content:center;';
     const dirs = [
-        ['', '⬆️', ''],
-        ['⬅️', '⬇️', '➡️']
+        ['', 'â¬†ï¸', ''],
+        ['â¬…ï¸', 'â¬‡ï¸', 'âž¡ï¸']
     ];
-    const dirMap = {'⬆️':'up','⬇️':'down','⬅️':'left','➡️':'right'};
+    const dirMap = {'â¬†ï¸':'up','â¬‡ï¸':'down','â¬…ï¸':'left','âž¡ï¸':'right'};
     dirs.forEach(row => {
         row.forEach(d => {
             const b = document.createElement('button');
@@ -229,7 +229,7 @@ function initSnake() {
     function die() {
         running = false;
         clearInterval(interval);
-        startBtn.textContent = '▶ Start';
+        startBtn.textContent = 'â–¶ Start';
         showGameOver('Game Over!', score, 'snake', () => { reset(); });
     }
 
@@ -272,10 +272,10 @@ function initSnake() {
     document.addEventListener('keydown', onKey);
 
     startBtn.onclick = () => {
-        if (running) { running = false; clearInterval(interval); startBtn.textContent = '▶ Start'; return; }
+        if (running) { running = false; clearInterval(interval); startBtn.textContent = 'â–¶ Start'; return; }
         reset();
         running = true;
-        startBtn.textContent = '⏸ Pause';
+        startBtn.textContent = 'â¸ Pause';
         interval = setInterval(step, 120);
     };
 
@@ -286,7 +286,7 @@ function initSnake() {
 
 // ==================== 2. TIC TAC TOE ====================
 function initTicTacToe() {
-    gameTitle.textContent = '❌⭕ Tic Tac Toe';
+    gameTitle.textContent = 'âŒâ­• Tic Tac Toe';
 
     let board, turn, gameOver;
     let wins = getHigh('ttt_wins'), losses = getHigh('ttt_losses'), draws = getHigh('ttt_draws');
@@ -304,7 +304,7 @@ function initTicTacToe() {
 
     const restartBtn = document.createElement('button');
     restartBtn.className = 'game-btn';
-    restartBtn.textContent = '🔄 New Game';
+    restartBtn.textContent = 'ðŸ”„ New Game';
 
     gameArea.append(scores, status, boardDiv, restartBtn);
 
@@ -397,13 +397,13 @@ function initTicTacToe() {
     function endGame(result) {
         gameOver = true;
         if (result === 'X') {
-            status.textContent = '🎉 You win!';
+            status.textContent = 'ðŸŽ‰ You win!';
             wins++; localStorage.setItem('ak_ttt_wins', wins);
         } else if (result === 'O') {
-            status.textContent = '😢 CPU wins!';
+            status.textContent = 'ðŸ˜¢ CPU wins!';
             losses++; localStorage.setItem('ak_ttt_losses', losses);
         } else {
-            status.textContent = '🤝 Draw!';
+            status.textContent = 'ðŸ¤ Draw!';
             draws++; localStorage.setItem('ak_ttt_draws', draws);
         }
         document.getElementById('ttt-w').textContent = wins;
@@ -420,21 +420,21 @@ function initTicTacToe() {
 
 // ==================== 3. MEMORY MATCH ====================
 function initMemory() {
-    gameTitle.textContent = '🧠 Memory Match';
+    gameTitle.textContent = 'ðŸ§  Memory Match';
 
-    const emojis = ['🚀','🎸','🦊','⚡','🌈','🎯','🍕','💎'];
+    const emojis = ['ðŸš€','ðŸŽ¸','ðŸ¦Š','âš¡','ðŸŒˆ','ðŸŽ¯','ðŸ•','ðŸ’Ž'];
     let cards, flipped, matched, moves, timerStart, timerInterval, locked;
 
     const info = document.createElement('div');
     info.className = 'game-info';
-    info.innerHTML = `<span>Moves: <b id="mem-moves">0</b></span><span>Time: <b id="mem-time">0s</b></span><span>Best: <b id="mem-high">${getHigh('memory') || '—'}</b> moves</span>`;
+    info.innerHTML = `<span>Moves: <b id="mem-moves">0</b></span><span>Time: <b id="mem-time">0s</b></span><span>Best: <b id="mem-high">${getHigh('memory') || 'â€”'}</b> moves</span>`;
 
     const grid = document.createElement('div');
     grid.className = 'memory-grid';
 
     const restartBtn = document.createElement('button');
     restartBtn.className = 'game-btn';
-    restartBtn.textContent = '🔄 New Game';
+    restartBtn.textContent = 'ðŸ”„ New Game';
 
     gameArea.append(info, grid, restartBtn);
 
@@ -453,7 +453,7 @@ function initMemory() {
         timerStart = null;
         document.getElementById('mem-moves').textContent = '0';
         document.getElementById('mem-time').textContent = '0s';
-        document.getElementById('mem-high').textContent = getHigh('memory') || '—';
+        document.getElementById('mem-high').textContent = getHigh('memory') || 'â€”';
         render();
     }
 
@@ -499,7 +499,7 @@ function initMemory() {
                     const prev = getHigh('memory');
                     if (!prev || moves < prev) localStorage.setItem('ak_memory', moves);
                     document.getElementById('mem-high').textContent = localStorage.getItem('ak_memory') || moves;
-                    showGameOver('🎉 You Win!', moves + ' moves in ' + time + 's', 'memory_dummy', reset);
+                    showGameOver('ðŸŽ‰ You Win!', moves + ' moves in ' + time + 's', 'memory_dummy', reset);
                 }
             } else {
                 setTimeout(() => { flipped = []; locked = false; render(); }, 800);
@@ -515,7 +515,7 @@ function initMemory() {
 
 // ==================== 4. ENDLESS RUNNER ====================
 function initRunner() {
-    gameTitle.textContent = '🏃 Endless Runner';
+    gameTitle.textContent = 'ðŸƒ Endless Runner';
 
     const canvas = document.createElement('canvas');
     canvas.className = 'game-canvas';
@@ -528,7 +528,7 @@ function initRunner() {
 
     const startBtn = document.createElement('button');
     startBtn.className = 'game-btn';
-    startBtn.textContent = '▶ Start (Space/Tap to Jump)';
+    startBtn.textContent = 'â–¶ Start (Space/Tap to Jump)';
 
     gameArea.append(info, canvas, startBtn);
 
@@ -585,9 +585,9 @@ function initRunner() {
 
     function die() {
         running = false;
-        startBtn.textContent = '▶ Start';
+        startBtn.textContent = 'â–¶ Start';
         const finalScore = Math.floor(score / 5);
-        showGameOver('Crashed! 💥', finalScore, 'runner', () => { reset(); });
+        showGameOver('Crashed! ðŸ’¥', finalScore, 'runner', () => { reset(); });
     }
 
     function draw() {
@@ -656,7 +656,7 @@ function initRunner() {
         if (running) return;
         reset();
         running = true;
-        startBtn.textContent = '🏃 Running...';
+        startBtn.textContent = 'ðŸƒ Running...';
         frameId = requestAnimationFrame(step);
     };
 
@@ -671,20 +671,20 @@ function initRunner() {
 
 // ==================== 5. SLIDE PUZZLE ====================
 function initPuzzle() {
-    gameTitle.textContent = '🧩 Slide Puzzle';
+    gameTitle.textContent = 'ðŸ§© Slide Puzzle';
 
     let tiles, emptyIdx, moves, solved;
 
     const info = document.createElement('div');
     info.className = 'game-info';
-    info.innerHTML = `<span>Moves: <b id="puz-moves">0</b></span><span>Best: <b id="puz-high">${getHigh('puzzle') || '—'}</b></span>`;
+    info.innerHTML = `<span>Moves: <b id="puz-moves">0</b></span><span>Best: <b id="puz-high">${getHigh('puzzle') || 'â€”'}</b></span>`;
 
     const grid = document.createElement('div');
     grid.className = 'puzzle-grid';
 
     const shuffleBtn = document.createElement('button');
     shuffleBtn.className = 'game-btn';
-    shuffleBtn.textContent = '🔀 Shuffle';
+    shuffleBtn.textContent = 'ðŸ”€ Shuffle';
 
     gameArea.append(info, grid, shuffleBtn);
 
@@ -743,7 +743,7 @@ function initPuzzle() {
             const prev = getHigh('puzzle');
             if (!prev || moves < prev) localStorage.setItem('ak_puzzle', moves);
             document.getElementById('puz-high').textContent = localStorage.getItem('ak_puzzle') || moves;
-            showGameOver('🧩 Solved!', moves + ' moves', 'puzzle_dummy', shuffle);
+            showGameOver('ðŸ§© Solved!', moves + ' moves', 'puzzle_dummy', shuffle);
         }
     }
 
@@ -755,7 +755,7 @@ function initPuzzle() {
 
 // ==================== 6. TARGET SHOOTER ====================
 function initShooter() {
-    gameTitle.textContent = '🎯 Target Shooter';
+    gameTitle.textContent = 'ðŸŽ¯ Target Shooter';
 
     let score, timeLeft, running, spawnInterval, timerInterval;
 
@@ -768,7 +768,7 @@ function initShooter() {
 
     const startBtn = document.createElement('button');
     startBtn.className = 'game-btn';
-    startBtn.textContent = '▶ Start (60 seconds)';
+    startBtn.textContent = 'â–¶ Start (60 seconds)';
 
     gameArea.append(info, arena, startBtn);
 
@@ -811,7 +811,7 @@ function initShooter() {
         score = 0; timeLeft = 60; running = true;
         document.getElementById('shoot-score').textContent = '0';
         document.getElementById('shoot-time').textContent = '60';
-        startBtn.textContent = '🔫 Shooting...';
+        startBtn.textContent = 'ðŸ”« Shooting...';
 
         timerInterval = setInterval(() => {
             timeLeft--;
@@ -820,8 +820,8 @@ function initShooter() {
                 running = false;
                 clearInterval(timerInterval);
                 clearInterval(spawnInterval);
-                startBtn.textContent = '▶ Start';
-                showGameOver('⏰ Time Up!', score, 'shooter', start);
+                startBtn.textContent = 'â–¶ Start';
+                showGameOver('â° Time Up!', score, 'shooter', start);
             }
         }, 1000);
 
@@ -841,7 +841,7 @@ function initShooter() {
 
 // ==================== 7. PONG ====================
 function initPong() {
-    gameTitle.textContent = '🏓 Pong';
+    gameTitle.textContent = 'ðŸ“ Pong';
 
     const canvas = document.createElement('canvas');
     canvas.className = 'game-canvas';
@@ -854,7 +854,7 @@ function initPong() {
 
     const startBtn = document.createElement('button');
     startBtn.className = 'game-btn';
-    startBtn.textContent = '▶ Start';
+    startBtn.textContent = 'â–¶ Start';
 
     gameArea.append(info, canvas, startBtn);
 
@@ -905,14 +905,14 @@ function initPong() {
             ball.y = ball.y - BALL_R <= 0 ? BALL_R : canvas.height - BALL_R;
         }
 
-        // Paddle collision — player (left)
+        // Paddle collision â€” player (left)
         if (ball.vx < 0 && ball.x - BALL_R <= PAD_W + 15 && ball.y >= playerY && ball.y <= playerY + PAD_H) {
             ball.vx = Math.abs(ball.vx) * 1.05;
             ball.vy += (ball.y - (playerY + PAD_H / 2)) * 0.15;
             ball.x = PAD_W + 15 + BALL_R;
         }
 
-        // Paddle collision — CPU (right)
+        // Paddle collision â€” CPU (right)
         if (ball.vx > 0 && ball.x + BALL_R >= canvas.width - PAD_W - 15 && ball.y >= cpuY && ball.y <= cpuY + PAD_H) {
             ball.vx = -Math.abs(ball.vx) * 1.05;
             ball.vy += (ball.y - (cpuY + PAD_H / 2)) * 0.15;
@@ -944,13 +944,13 @@ function initPong() {
 
     function endPong(winner) {
         running = false;
-        startBtn.textContent = '▶ Start';
+        startBtn.textContent = 'â–¶ Start';
         const won = winner === 'Player';
         if (won) {
             const w = getHigh('pong_wins') + 1;
             localStorage.setItem('ak_pong_wins', w);
         }
-        showGameOver(won ? '🎉 You Win!' : '😢 CPU Wins!', playerScore + ' — ' + cpuScore, 'pong_dummy', () => { reset(); });
+        showGameOver(won ? 'ðŸŽ‰ You Win!' : 'ðŸ˜¢ CPU Wins!', playerScore + ' â€” ' + cpuScore, 'pong_dummy', () => { reset(); });
     }
 
     function draw() {
@@ -1023,7 +1023,7 @@ function initPong() {
         if (running) return;
         reset();
         running = true;
-        startBtn.textContent = '🏓 Playing...';
+        startBtn.textContent = 'ðŸ“ Playing...';
         frameId = requestAnimationFrame(step);
     };
 
@@ -1039,7 +1039,7 @@ function initPong() {
 
 // ==================== BINGO ====================
 function initBingo() {
-    gameTitle.textContent = '🎱 Bingo';
+    gameTitle.textContent = 'ðŸŽ± Bingo';
 
     // Generate a random bingo card (5x5) with FREE center
     function generateCard() {
@@ -1167,9 +1167,9 @@ function initBingo() {
                 const overlay = document.createElement('div');
                 overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;border-radius:12px;';
                 overlay.innerHTML = `
-                    <div style="font-size:3rem;margin-bottom:10px;">🎉</div>
+                    <div style="font-size:3rem;margin-bottom:10px;">ðŸŽ‰</div>
                     <div style="font-size:2rem;font-weight:bold;color:#00ff88;font-family:Orbitron,sans-serif;">BINGO!</div>
-                    <div style="color:#ccc;margin:10px 0;">Wins: ${wins}${isNew ? ' ⭐ New Record!' : ''}</div>
+                    <div style="color:#ccc;margin:10px 0;">Wins: ${wins}${isNew ? ' â­ New Record!' : ''}</div>
                     <div style="color:#888;margin-bottom:15px;">High Score: ${getHigh('bingo')}</div>
                     <button style="padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#00ff88,#00d4ff);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;" onclick="this.parentElement.remove()">New Game</button>
                 `;
@@ -1222,7 +1222,7 @@ function initBingo() {
                     glow = 'box-shadow:0 0 8px rgba(0,255,136,0.3);';
                 }
 
-                const display = isFree ? '⭐' : val;
+                const display = isFree ? 'â­' : val;
                 gridHTML += `<td onclick="window._bingoMark(${r},${c})" style="width:55px;height:55px;text-align:center;font-size:${isFree ? '1.5rem' : '1.1rem'};font-weight:bold;background:${bg};color:${color};border:${border};border-radius:8px;cursor:${cursor};font-family:Rajdhani,sans-serif;transition:all 0.2s;${glow}">${display}</td>`;
             }
             gridHTML += '</tr>';
@@ -1245,7 +1245,7 @@ function initBingo() {
                 </div>
                 ${gridHTML}
                 ${recentHTML}
-                ${!gameActive ? `<button id="bingo-start" style="margin-top:15px;padding:12px 35px;font-size:1.1rem;background:linear-gradient(135deg,#00ff88,#00d4ff);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">${ballIndex > 0 ? '🔄 New Game' : '▶ Start'}</button>` : `<div style="margin-top:12px;color:#b44aff;font-size:0.9rem;">Click numbers on your card when they're called!</div>`}
+                ${!gameActive ? `<button id="bingo-start" style="margin-top:15px;padding:12px 35px;font-size:1.1rem;background:linear-gradient(135deg,#00ff88,#00d4ff);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">${ballIndex > 0 ? 'ðŸ”„ New Game' : 'â–¶ Start'}</button>` : `<div style="margin-top:12px;color:#b44aff;font-size:0.9rem;">Click numbers on your card when they're called!</div>`}
                 <div style="margin-top:8px;color:#666;font-size:0.8rem;">Wins: ${wins} | Best: ${getHigh('bingo')}</div>
             </div>
         `;
@@ -1276,45 +1276,45 @@ function initBingo() {
 
 // ==================== TALKING CAT (Mini Talking Tom) ====================
 function initTalkingCat() {
-    gameTitle.textContent = '🐱 Talking Cat';
+    gameTitle.textContent = 'ðŸ± Talking Cat';
 
     let happiness = 70;
     let hunger = 50;
     let energy = 80;
     let coins = 0;
     let mood = 'happy';
-    let catExpression = '😺';
-    let speechBubble = 'Hi! I\'m Tom the Cat! 🐱';
+    let catExpression = 'ðŸ˜º';
+    let speechBubble = 'Hi! I\'m Tom the Cat! ðŸ±';
     let animating = false;
     let statInterval = null;
     let outfitIndex = 0;
 
-    const outfits = ['none', '🎩', '👑', '🎀', '🕶️', '🧢', '🪖'];
+    const outfits = ['none', 'ðŸŽ©', 'ðŸ‘‘', 'ðŸŽ€', 'ðŸ•¶ï¸', 'ðŸ§¢', 'ðŸª–'];
     const outfitNames = ['None', 'Top Hat', 'Crown', 'Bow', 'Sunglasses', 'Cap', 'Helmet'];
     const catSayings = [
-        'Meow meow! 😸', 'Pet me more! 🐾', 'I love you! ❤️', 'Got any fish? 🐟',
-        'I\'m the best cat! 😼', 'Purrrrrr... 😻', 'Play with me! 🧶',
-        'That tickles! 😹', 'Hehe! 🐱', 'You\'re my best friend! 💕',
-        'I want treats! 🍪', 'Let\'s have fun! 🎉', 'Woooo! 🎊',
-        'Nap time? 😴', '*stretches* 🐈', 'More pets please! 🥰'
+        'Meow meow! ðŸ˜¸', 'Pet me more! ðŸ¾', 'I love you! â¤ï¸', 'Got any fish? ðŸŸ',
+        'I\'m the best cat! ðŸ˜¼', 'Purrrrrr... ðŸ˜»', 'Play with me! ðŸ§¶',
+        'That tickles! ðŸ˜¹', 'Hehe! ðŸ±', 'You\'re my best friend! ðŸ’•',
+        'I want treats! ðŸª', 'Let\'s have fun! ðŸŽ‰', 'Woooo! ðŸŽŠ',
+        'Nap time? ðŸ˜´', '*stretches* ðŸˆ', 'More pets please! ðŸ¥°'
     ];
 
     function updateMood() {
         if (happiness > 80 && hunger < 30 && energy > 50) {
-            mood = 'happy'; catExpression = '😺';
+            mood = 'happy'; catExpression = 'ðŸ˜º';
         } else if (happiness > 60) {
-            mood = 'content'; catExpression = '🐱';
+            mood = 'content'; catExpression = 'ðŸ±';
         } else if (hunger > 70) {
-            mood = 'hungry'; catExpression = '😿';
-            speechBubble = 'I\'m sooo hungry! Feed me! 🍕';
+            mood = 'hungry'; catExpression = 'ðŸ˜¿';
+            speechBubble = 'I\'m sooo hungry! Feed me! ðŸ•';
         } else if (energy < 20) {
-            mood = 'sleepy'; catExpression = '😴';
-            speechBubble = 'So tired... need sleep... 💤';
+            mood = 'sleepy'; catExpression = 'ðŸ˜´';
+            speechBubble = 'So tired... need sleep... ðŸ’¤';
         } else if (happiness < 30) {
-            mood = 'sad'; catExpression = '😿';
-            speechBubble = 'I\'m sad... pet me please! 😢';
+            mood = 'sad'; catExpression = 'ðŸ˜¿';
+            speechBubble = 'I\'m sad... pet me please! ðŸ˜¢';
         } else {
-            mood = 'normal'; catExpression = '🐱';
+            mood = 'normal'; catExpression = 'ðŸ±';
         }
     }
 
@@ -1326,7 +1326,7 @@ function initTalkingCat() {
         happiness = clamp(happiness + 10);
         energy = clamp(energy - 3);
         coins += 1;
-        catExpression = '😻';
+        catExpression = 'ðŸ˜»';
         speechBubble = catSayings[Math.floor(Math.random() * catSayings.length)];
         render();
         setTimeout(() => { animating = false; updateMood(); render(); }, 1200);
@@ -1339,8 +1339,8 @@ function initTalkingCat() {
         happiness = clamp(happiness + 5);
         energy = clamp(energy + 5);
         coins += 2;
-        catExpression = '😸';
-        speechBubble = 'Yummy! That was delicious! 🐟😋';
+        catExpression = 'ðŸ˜¸';
+        speechBubble = 'Yummy! That was delicious! ðŸŸðŸ˜‹';
         render();
         setTimeout(() => { animating = false; updateMood(); render(); }, 1200);
     }
@@ -1348,7 +1348,7 @@ function initTalkingCat() {
     function playCat() {
         if (animating) return;
         if (energy < 10) {
-            speechBubble = 'Too tired to play... let me sleep first! 😴';
+            speechBubble = 'Too tired to play... let me sleep first! ðŸ˜´';
             render();
             return;
         }
@@ -1357,12 +1357,12 @@ function initTalkingCat() {
         energy = clamp(energy - 15);
         hunger = clamp(hunger + 10);
         coins += 3;
-        catExpression = '🙀';
-        speechBubble = 'Wheeeee! So fun! 🎉🧶';
+        catExpression = 'ðŸ™€';
+        speechBubble = 'Wheeeee! So fun! ðŸŽ‰ðŸ§¶';
         render();
         setTimeout(() => {
-            catExpression = '😸';
-            speechBubble = 'That was awesome! Again! 🎊';
+            catExpression = 'ðŸ˜¸';
+            speechBubble = 'That was awesome! Again! ðŸŽŠ';
             render();
             setTimeout(() => { animating = false; updateMood(); render(); }, 800);
         }, 800);
@@ -1373,12 +1373,12 @@ function initTalkingCat() {
         animating = true;
         energy = clamp(energy + 30);
         hunger = clamp(hunger + 10);
-        catExpression = '😴';
-        speechBubble = 'Zzzzz... 💤💤💤';
+        catExpression = 'ðŸ˜´';
+        speechBubble = 'Zzzzz... ðŸ’¤ðŸ’¤ðŸ’¤';
         render();
         setTimeout(() => {
-            catExpression = '😺';
-            speechBubble = 'Ahh! I feel great now! ⚡';
+            catExpression = 'ðŸ˜º';
+            speechBubble = 'Ahh! I feel great now! âš¡';
             energy = clamp(energy + 10);
             animating = false;
             updateMood();
@@ -1391,12 +1391,12 @@ function initTalkingCat() {
         animating = true;
         happiness = clamp(happiness + 8);
         coins += 1;
-        catExpression = '😹';
-        speechBubble = 'HAHAHA stop it!! That tickles!! 😂🤣';
+        catExpression = 'ðŸ˜¹';
+        speechBubble = 'HAHAHA stop it!! That tickles!! ðŸ˜‚ðŸ¤£';
         render();
         setTimeout(() => {
-            catExpression = '😸';
-            speechBubble = 'Hehe... do it again! 😜';
+            catExpression = 'ðŸ˜¸';
+            speechBubble = 'Hehe... do it again! ðŸ˜œ';
             render();
             setTimeout(() => { animating = false; updateMood(); render(); }, 600);
         }, 1000);
@@ -1405,7 +1405,7 @@ function initTalkingCat() {
     function changeOutfit() {
         outfitIndex = (outfitIndex + 1) % outfits.length;
         const name = outfitNames[outfitIndex];
-        speechBubble = outfits[outfitIndex] === 'none' ? 'Au naturel! 🐱' : `How do I look with my ${name}? ${outfits[outfitIndex]}✨`;
+        speechBubble = outfits[outfitIndex] === 'none' ? 'Au naturel! ðŸ±' : `How do I look with my ${name}? ${outfits[outfitIndex]}âœ¨`;
         render();
     }
 
@@ -1452,20 +1452,20 @@ function initTalkingCat() {
 
                 <!-- Stats -->
                 <div style="background:${bgColor};border-radius:12px;padding:12px;margin:10px 0;border:1px solid #333;">
-                    ${statBar('😊 Happy', happiness, '#00ff88')}
-                    ${statBar('🍕 Hunger', 100 - hunger, hunger > 70 ? '#ff4444' : '#ffaa00')}
-                    ${statBar('⚡ Energy', energy, '#00d4ff')}
-                    <div style="text-align:center;margin-top:8px;color:#ffaa00;font-family:Orbitron,sans-serif;font-size:0.9rem;">🪙 ${coins} coins</div>
+                    ${statBar('ðŸ˜Š Happy', happiness, '#00ff88')}
+                    ${statBar('ðŸ• Hunger', 100 - hunger, hunger > 70 ? '#ff4444' : '#ffaa00')}
+                    ${statBar('âš¡ Energy', energy, '#00d4ff')}
+                    <div style="text-align:center;margin-top:8px;color:#ffaa00;font-family:Orbitron,sans-serif;font-size:0.9rem;">ðŸª™ ${coins} coins</div>
                 </div>
 
                 <!-- Action Buttons -->
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;">
-                    <button class="cat-btn" onclick="window._talkingCatFeed()">🐟<br><span style="font-size:0.7rem;color:#aaa;">Feed</span></button>
-                    <button class="cat-btn" onclick="window._talkingCatPlay()">🧶<br><span style="font-size:0.7rem;color:#aaa;">Play</span></button>
-                    <button class="cat-btn" onclick="window._talkingCatSleep()">💤<br><span style="font-size:0.7rem;color:#aaa;">Sleep</span></button>
-                    <button class="cat-btn" onclick="window._talkingCatTickle()">🤣<br><span style="font-size:0.7rem;color:#aaa;">Tickle</span></button>
-                    <button class="cat-btn" onclick="window._talkingCatOutfit()">👔<br><span style="font-size:0.7rem;color:#aaa;">Outfit</span></button>
-                    <button class="cat-btn" onclick="window._talkingCatPet()">🐾<br><span style="font-size:0.7rem;color:#aaa;">Pet</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatFeed()">ðŸŸ<br><span style="font-size:0.7rem;color:#aaa;">Feed</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatPlay()">ðŸ§¶<br><span style="font-size:0.7rem;color:#aaa;">Play</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatSleep()">ðŸ’¤<br><span style="font-size:0.7rem;color:#aaa;">Sleep</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatTickle()">ðŸ¤£<br><span style="font-size:0.7rem;color:#aaa;">Tickle</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatOutfit()">ðŸ‘”<br><span style="font-size:0.7rem;color:#aaa;">Outfit</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatPet()">ðŸ¾<br><span style="font-size:0.7rem;color:#aaa;">Pet</span></button>
                 </div>
             </div>
         `;
@@ -1506,10 +1506,10 @@ function initTalkingCat() {
 
 // ==================== HIDE & SEEK ====================
 function initHideSeek() {
-    gameTitle.textContent = '👀 Hide & Seek';
+    gameTitle.textContent = 'ðŸ‘€ Hide & Seek';
 
-    const characters = ['🐸','🐻','🐱','🐶','🐰','🦊','🐼','🐨','🦁','🐯','🐮','🐷','🐵','🦄','🐲','🐙','🦀','🐢','🦋','🐝'];
-    const hidingSpots = ['🌳','🪨','🏠','📦','🗑️','🚗','⛺','🏔️','🌻','🎪','🧱','🪣','🛖','🏗️','🎁','🗄️','🚪','🪴','🎭','🏺'];
+    const characters = ['ðŸ¸','ðŸ»','ðŸ±','ðŸ¶','ðŸ°','ðŸ¦Š','ðŸ¼','ðŸ¨','ðŸ¦','ðŸ¯','ðŸ®','ðŸ·','ðŸµ','ðŸ¦„','ðŸ²','ðŸ™','ðŸ¦€','ðŸ¢','ðŸ¦‹','ðŸ'];
+    const hidingSpots = ['ðŸŒ³','ðŸª¨','ðŸ ','ðŸ“¦','ðŸ—‘ï¸','ðŸš—','â›º','ðŸ”ï¸','ðŸŒ»','ðŸŽª','ðŸ§±','ðŸª£','ðŸ›–','ðŸ—ï¸','ðŸŽ','ðŸ—„ï¸','ðŸšª','ðŸª´','ðŸŽ­','ðŸº'];
 
     let level, found, toFind, grid, timer, timerInterval, score, gridSize, hiddenPositions;
 
@@ -1608,7 +1608,7 @@ function initHideSeek() {
                 cursor = 'default';
                 glow = 'box-shadow:0 0 15px rgba(0,255,136,0.4);';
             } else if (cell.checked) {
-                content = '❌';
+                content = 'âŒ';
                 bg = '#2a0a0a';
                 border = '2px solid #ff4444';
                 cursor = 'default';
@@ -1627,14 +1627,14 @@ function initHideSeek() {
 
         const progressDots = [];
         for (let i = 0; i < toFind; i++) {
-            progressDots.push(i < found ? '🟢' : '⚫');
+            progressDots.push(i < found ? 'ðŸŸ¢' : 'âš«');
         }
 
         gameArea.innerHTML = `
             <div style="text-align:center;padding:10px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;max-width:350px;margin:0 auto 10px;">
                     <div style="color:#b44aff;font-family:Orbitron,sans-serif;font-size:0.9rem;">Level ${level}</div>
-                    <div style="color:${timer <= 10 ? '#ff4444' : '#00d4ff'};font-family:Orbitron,sans-serif;font-size:1.2rem;${timer <= 10 ? 'animation:pulse 0.5s infinite;' : ''}">⏱️ ${timer}s</div>
+                    <div style="color:${timer <= 10 ? '#ff4444' : '#00d4ff'};font-family:Orbitron,sans-serif;font-size:1.2rem;${timer <= 10 ? 'animation:pulse 0.5s infinite;' : ''}">â±ï¸ ${timer}s</div>
                     <div style="color:#00ff88;font-family:Orbitron,sans-serif;font-size:0.9rem;">Score: ${score}</div>
                 </div>
                 <div style="margin-bottom:8px;color:#aaa;font-size:0.85rem;">Find ${toFind} hidden characters! (${found}/${toFind})</div>
@@ -1662,14 +1662,14 @@ function initHideSeek() {
 
 // ==================== RACING ====================
 function initRacing() {
-    gameTitle.textContent = '🏎️ Racing';
+    gameTitle.textContent = 'ðŸŽï¸ Racing';
 
     const canvas = document.createElement('canvas');
     canvas.width = 320;
     canvas.height = 480;
     canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #00ff88;border-radius:12px;background:#333;touch-action:none;';
     const startBtn = document.createElement('button');
-    startBtn.textContent = '▶ Start Race!';
+    startBtn.textContent = 'â–¶ Start Race!';
     startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#00ff88,#00d4ff);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;';
     const info = document.createElement('div');
     info.style.cssText = 'text-align:center;color:#666;font-size:0.75rem;margin-top:8px;';
@@ -1679,8 +1679,8 @@ function initRacing() {
     const mobileControls = document.createElement('div');
     mobileControls.style.cssText = 'display:flex;justify-content:center;gap:20px;margin-top:10px;';
     mobileControls.innerHTML = `
-        <button id="race-left" style="padding:15px 25px;font-size:1.5rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:12px;color:#00d4ff;cursor:pointer;">⬅</button>
-        <button id="race-right" style="padding:15px 25px;font-size:1.5rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:12px;color:#00d4ff;cursor:pointer;">➡</button>
+        <button id="race-left" style="padding:15px 25px;font-size:1.5rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:12px;color:#00d4ff;cursor:pointer;">â¬…</button>
+        <button id="race-right" style="padding:15px 25px;font-size:1.5rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:12px;color:#00d4ff;cursor:pointer;">âž¡</button>
     `;
 
     gameArea.appendChild(canvas);
@@ -1835,7 +1835,7 @@ function initRacing() {
                 Math.abs(py - obs.y) < (ph + obs.h) / 2 - 5) {
                 // Crash!
                 running = false;
-                startBtn.textContent = '🔄 Race Again!';
+                startBtn.textContent = 'ðŸ”„ Race Again!';
                 showGameOver('Crash!', score, 'racing', () => { reset(); });
                 return;
             }
@@ -1893,7 +1893,7 @@ function initRacing() {
         if (running) return;
         reset();
         running = true;
-        startBtn.textContent = '🏎️ Racing...';
+        startBtn.textContent = 'ðŸŽï¸ Racing...';
         frameId = requestAnimationFrame(step);
     };
 
@@ -1906,7 +1906,7 @@ function initRacing() {
     ctx.font = 'bold 20px Orbitron, sans-serif';
     ctx.fillStyle = '#00ff88';
     ctx.textAlign = 'center';
-    ctx.fillText('🏎️ Ready to Race?', W/2, H/2);
+    ctx.fillText('ðŸŽï¸ Ready to Race?', W/2, H/2);
 
     gameScoreDisplay.textContent = 'High: ' + getHigh('racing');
 
@@ -1919,28 +1919,28 @@ function initRacing() {
 
 // ==================== SPOT THE DIFFERENCE ====================
 function initSpotDiff() {
-    gameTitle.textContent = '🔍 Spot the Difference';
+    gameTitle.textContent = 'ðŸ” Spot the Difference';
 
     // Scenes are emoji grids. We generate a grid then change some emojis for the "different" version.
     const emojiSets = [
-        ['🌳','🏠','🌸','☀️','🐦','⛅','🌈','🦋','🌺','🍄','🐿️','🪺','🌻','🐝','🪻','🌾'],
-        ['🐟','🐠','🦀','🐙','🪸','🐚','🦈','🐳','🫧','🌊','⚓','🦞','🐡','🦑','🐬','🪼'],
-        ['🍕','🍔','🌮','🍦','🎂','🧁','🍩','🍪','🥤','🍿','🌭','🍟','🥨','🧇','🍫','🥞'],
-        ['🚀','🌙','⭐','🪐','👽','🛸','☄️','🌌','🔭','🛰️','🌠','💫','🧑‍🚀','🌑','🌕','✨'],
-        ['🎸','🥁','🎹','🎺','🎻','🪘','🎤','🎵','🎶','🎷','🪗','📯','🎙️','🔔','🎼','🪈'],
-        ['🏀','⚽','🏈','🎾','🏓','🎯','🏐','🥊','⛳','🏋️','🤸','🏊','🚴','⛷️','🏄','🤾']
+        ['ðŸŒ³','ðŸ ','ðŸŒ¸','â˜€ï¸','ðŸ¦','â›…','ðŸŒˆ','ðŸ¦‹','ðŸŒº','ðŸ„','ðŸ¿ï¸','ðŸªº','ðŸŒ»','ðŸ','ðŸª»','ðŸŒ¾'],
+        ['ðŸŸ','ðŸ ','ðŸ¦€','ðŸ™','ðŸª¸','ðŸš','ðŸ¦ˆ','ðŸ³','ðŸ«§','ðŸŒŠ','âš“','ðŸ¦ž','ðŸ¡','ðŸ¦‘','ðŸ¬','ðŸª¼'],
+        ['ðŸ•','ðŸ”','ðŸŒ®','ðŸ¦','ðŸŽ‚','ðŸ§','ðŸ©','ðŸª','ðŸ¥¤','ðŸ¿','ðŸŒ­','ðŸŸ','ðŸ¥¨','ðŸ§‡','ðŸ«','ðŸ¥ž'],
+        ['ðŸš€','ðŸŒ™','â­','ðŸª','ðŸ‘½','ðŸ›¸','â˜„ï¸','ðŸŒŒ','ðŸ”­','ðŸ›°ï¸','ðŸŒ ','ðŸ’«','ðŸ§‘â€ðŸš€','ðŸŒ‘','ðŸŒ•','âœ¨'],
+        ['ðŸŽ¸','ðŸ¥','ðŸŽ¹','ðŸŽº','ðŸŽ»','ðŸª˜','ðŸŽ¤','ðŸŽµ','ðŸŽ¶','ðŸŽ·','ðŸª—','ðŸ“¯','ðŸŽ™ï¸','ðŸ””','ðŸŽ¼','ðŸªˆ'],
+        ['ðŸ€','âš½','ðŸˆ','ðŸŽ¾','ðŸ“','ðŸŽ¯','ðŸ','ðŸ¥Š','â›³','ðŸ‹ï¸','ðŸ¤¸','ðŸŠ','ðŸš´','â›·ï¸','ðŸ„','ðŸ¤¾']
     ];
 
     const swapEmojis = {
-        '🌳':'🌴','🏠':'🏡','🌸':'🌺','☀️':'🌙','🐦':'🦅','⛅':'☁️','🌈':'🌤️','🦋':'🐛',
-        '🐟':'🐡','🐠':'🐬','🦀':'🦞','🐙':'🦑','🪸':'🌊','🐚':'🪸','🦈':'🐳','🐳':'🐋',
-        '🍕':'🌮','🍔':'🌯','🌮':'🥙','🍦':'🧁','🎂':'🍰','🧁':'🍦','🍩':'🥯','🍪':'🍫',
-        '🚀':'🛸','🌙':'🌕','⭐':'💫','🪐':'🌍','👽':'🤖','🛸':'🚀','☄️':'🌠','🌌':'🌃',
-        '🎸':'🎻','🥁':'🪘','🎹':'🪗','🎺':'📯','🎻':'🎸','🪘':'🥁','🎤':'🎙️','🎵':'🎶',
-        '🏀':'⚽','⚽':'🏀','🏈':'🏉','🎾':'🏸','🏓':'🏸','🎯':'🥅','🏐':'🏀','🥊':'🤼',
-        '🌺':'🌸','🍄':'🌰','🐿️':'🐇','🪺':'🐣','🌻':'🌼','🐝':'🐞','🪻':'💐','🌾':'🌿',
-        '🫧':'💧','🌊':'🫧','⚓':'🪝','🦞':'🦐','🐡':'🐠','🦑':'🐙','🐬':'🐟','🪼':'🎐',
-        '🥤':'🧃','🍿':'🥜','🌭':'🥓','🍟':'🧆','🥨':'🥖','🧇':'🥞','🍫':'🍬','🥞':'🧇'
+        'ðŸŒ³':'ðŸŒ´','ðŸ ':'ðŸ¡','ðŸŒ¸':'ðŸŒº','â˜€ï¸':'ðŸŒ™','ðŸ¦':'ðŸ¦…','â›…':'â˜ï¸','ðŸŒˆ':'ðŸŒ¤ï¸','ðŸ¦‹':'ðŸ›',
+        'ðŸŸ':'ðŸ¡','ðŸ ':'ðŸ¬','ðŸ¦€':'ðŸ¦ž','ðŸ™':'ðŸ¦‘','ðŸª¸':'ðŸŒŠ','ðŸš':'ðŸª¸','ðŸ¦ˆ':'ðŸ³','ðŸ³':'ðŸ‹',
+        'ðŸ•':'ðŸŒ®','ðŸ”':'ðŸŒ¯','ðŸŒ®':'ðŸ¥™','ðŸ¦':'ðŸ§','ðŸŽ‚':'ðŸ°','ðŸ§':'ðŸ¦','ðŸ©':'ðŸ¥¯','ðŸª':'ðŸ«',
+        'ðŸš€':'ðŸ›¸','ðŸŒ™':'ðŸŒ•','â­':'ðŸ’«','ðŸª':'ðŸŒ','ðŸ‘½':'ðŸ¤–','ðŸ›¸':'ðŸš€','â˜„ï¸':'ðŸŒ ','ðŸŒŒ':'ðŸŒƒ',
+        'ðŸŽ¸':'ðŸŽ»','ðŸ¥':'ðŸª˜','ðŸŽ¹':'ðŸª—','ðŸŽº':'ðŸ“¯','ðŸŽ»':'ðŸŽ¸','ðŸª˜':'ðŸ¥','ðŸŽ¤':'ðŸŽ™ï¸','ðŸŽµ':'ðŸŽ¶',
+        'ðŸ€':'âš½','âš½':'ðŸ€','ðŸˆ':'ðŸ‰','ðŸŽ¾':'ðŸ¸','ðŸ“':'ðŸ¸','ðŸŽ¯':'ðŸ¥…','ðŸ':'ðŸ€','ðŸ¥Š':'ðŸ¤¼',
+        'ðŸŒº':'ðŸŒ¸','ðŸ„':'ðŸŒ°','ðŸ¿ï¸':'ðŸ‡','ðŸªº':'ðŸ£','ðŸŒ»':'ðŸŒ¼','ðŸ':'ðŸž','ðŸª»':'ðŸ’','ðŸŒ¾':'ðŸŒ¿',
+        'ðŸ«§':'ðŸ’§','ðŸŒŠ':'ðŸ«§','âš“':'ðŸª','ðŸ¦ž':'ðŸ¦','ðŸ¡':'ðŸ ','ðŸ¦‘':'ðŸ™','ðŸ¬':'ðŸŸ','ðŸª¼':'ðŸŽ',
+        'ðŸ¥¤':'ðŸ§ƒ','ðŸ¿':'ðŸ¥œ','ðŸŒ­':'ðŸ¥“','ðŸŸ':'ðŸ§†','ðŸ¥¨':'ðŸ¥–','ðŸ§‡':'ðŸ¥ž','ðŸ«':'ðŸ¬','ðŸ¥ž':'ðŸ§‡'
     };
 
     let level, score, found, differences, timer, timerInterval, originalGrid, modifiedGrid, gridSize, diffPositions;
@@ -1975,7 +1975,7 @@ function initSpotDiff() {
 
         diffPositions.forEach(pos => {
             const orig = originalGrid[pos];
-            modifiedGrid[pos] = swapEmojis[orig] || '❓';
+            modifiedGrid[pos] = swapEmojis[orig] || 'â“';
         });
 
         if (timerInterval) clearInterval(timerInterval);
@@ -2060,13 +2060,13 @@ function initSpotDiff() {
             <div style="text-align:center;padding:10px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;max-width:350px;margin:0 auto 10px;">
                     <div style="color:#b44aff;font-family:Orbitron,sans-serif;font-size:0.9rem;">Level ${level}</div>
-                    <div style="color:${timer <= 10 ? '#ff4444' : '#00d4ff'};font-family:Orbitron,sans-serif;font-size:1.1rem;${timer <= 10 ? 'animation:blink 0.5s infinite;' : ''}">⏱️ ${timer}s</div>
+                    <div style="color:${timer <= 10 ? '#ff4444' : '#00d4ff'};font-family:Orbitron,sans-serif;font-size:1.1rem;${timer <= 10 ? 'animation:blink 0.5s infinite;' : ''}">â±ï¸ ${timer}s</div>
                     <div style="color:#00ff88;font-family:Orbitron,sans-serif;font-size:0.9rem;">Score: ${score}</div>
                 </div>
                 <div style="margin-bottom:10px;color:#ffaa00;font-size:0.9rem;">Find ${remaining} difference${remaining !== 1 ? 's' : ''}! Tap on the RIGHT image.</div>
                 <div style="display:flex;justify-content:center;gap:15px;flex-wrap:wrap;">
-                    ${buildGrid(originalGrid, false, '✅ Original')}
-                    ${buildGrid(modifiedGrid, true, '🔍 Changed')}
+                    ${buildGrid(originalGrid, false, 'âœ… Original')}
+                    ${buildGrid(modifiedGrid, true, 'ðŸ” Changed')}
                 </div>
                 <div style="margin-top:10px;color:#666;font-size:0.75rem;">Wrong taps lose 3 seconds!</div>
                 <div style="margin-top:5px;color:#888;font-size:0.8rem;">High Score: ${getHigh('spotdiff')}</div>
@@ -2090,14 +2090,14 @@ function initSpotDiff() {
 
 // ==================== TAG ====================
 function initTag() {
-    gameTitle.textContent = '🏃 Tag';
+    gameTitle.textContent = 'ðŸƒ Tag';
 
     const canvas = document.createElement('canvas');
     canvas.width = 320;
     canvas.height = 400;
     canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #00ff88;border-radius:12px;background:#1a1a2e;touch-action:none;';
     const startBtn = document.createElement('button');
-    startBtn.textContent = '▶ Start!';
+    startBtn.textContent = 'â–¶ Start!';
     startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#00ff88,#00d4ff);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;';
     const info = document.createElement('div');
     info.style.cssText = 'text-align:center;color:#666;font-size:0.75rem;margin-top:8px;';
@@ -2108,13 +2108,13 @@ function initTag() {
     dpad.style.cssText = 'display:grid;grid-template-columns:50px 50px 50px;grid-template-rows:50px 50px 50px;justify-content:center;gap:4px;margin-top:10px;';
     dpad.innerHTML = `
         <div></div>
-        <button id="tag-up" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">⬆</button>
+        <button id="tag-up" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">â¬†</button>
         <div></div>
-        <button id="tag-left" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">⬅</button>
+        <button id="tag-left" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">â¬…</button>
         <div></div>
-        <button id="tag-right" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">➡</button>
+        <button id="tag-right" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">âž¡</button>
         <div></div>
-        <button id="tag-down" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">⬇</button>
+        <button id="tag-down" style="font-size:1.3rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:10px;color:#00d4ff;cursor:pointer;">â¬‡</button>
         <div></div>
     `;
 
@@ -2126,7 +2126,7 @@ function initTag() {
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
 
-    const runnerEmojis = ['😀','😎','🤪','😜','🤓','😂','🥳','😏','🤡','👻','👾','🤖'];
+    const runnerEmojis = ['ðŸ˜€','ðŸ˜Ž','ðŸ¤ª','ðŸ˜œ','ðŸ¤“','ðŸ˜‚','ðŸ¥³','ðŸ˜','ðŸ¤¡','ðŸ‘»','ðŸ‘¾','ðŸ¤–'];
 
     let player, runners, tagged, level, score, timer, running, frameId, timerInterval;
     let keys = { up: false, down: false, left: false, right: false };
@@ -2167,13 +2167,13 @@ function initTag() {
                 clearInterval(timerInterval);
                 timerInterval = null;
                 running = false;
-                startBtn.textContent = '🔄 Try Again';
+                startBtn.textContent = 'ðŸ”„ Try Again';
                 showGameOver('Time\'s Up!', score, 'tag', () => { reset(); });
             }
         }, 1000);
 
         running = true;
-        startBtn.textContent = '🏃 Playing...';
+        startBtn.textContent = 'ðŸƒ Playing...';
         frameId = requestAnimationFrame(step);
     }
 
@@ -2279,7 +2279,7 @@ function initTag() {
             ctx.globalAlpha = 1;
             // Tag marker
             ctx.font = '12px serif';
-            ctx.fillText('✅', r.x, r.y - r.size - 5);
+            ctx.fillText('âœ…', r.x, r.y - r.size - 5);
         }
 
         // Draw active runners
@@ -2296,7 +2296,7 @@ function initTag() {
             const dist = Math.sqrt(distX * distX + distY * distY);
             if (dist < 80) {
                 ctx.font = '14px serif';
-                ctx.fillText('❗', r.x, r.y - r.size - 8);
+                ctx.fillText('â—', r.x, r.y - r.size - 8);
             }
         }
 
@@ -2304,7 +2304,7 @@ function initTag() {
         ctx.font = `${player.size * 2}px serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('🫵', player.x, player.y);
+        ctx.fillText('ðŸ«µ', player.x, player.y);
 
         // Glow around player
         ctx.beginPath();
@@ -2323,7 +2323,7 @@ function initTag() {
         ctx.fillText('Lvl ' + level, 8, 9);
         ctx.fillStyle = timer <= 5 ? '#ff4444' : '#00d4ff';
         ctx.textAlign = 'center';
-        ctx.fillText('⏱ ' + timer + 's', W / 2, 9);
+        ctx.fillText('â± ' + timer + 's', W / 2, 9);
         ctx.fillStyle = '#00ff88';
         ctx.textAlign = 'right';
         ctx.fillText(tagged + '/' + runners.length + ' tagged', W - 8, 9);
@@ -2421,7 +2421,7 @@ function initTag() {
     ctx.fillStyle = '#00ff88';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🏃 Ready to Tag?', W / 2, H / 2);
+    ctx.fillText('ðŸƒ Ready to Tag?', W / 2, H / 2);
 
     gameScoreDisplay.textContent = 'High: ' + getHigh('tag');
 
@@ -2436,14 +2436,14 @@ function initTag() {
 
 // ==================== GEOMETRY DASH ====================
 function initGeoDash() {
-    gameTitle.textContent = '🔺 Geometry Dash';
+    gameTitle.textContent = 'ðŸ”º Geometry Dash';
 
     const canvas = document.createElement('canvas');
     canvas.width = 400;
     canvas.height = 300;
     canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #b44aff;border-radius:12px;background:#0a0a1a;touch-action:none;cursor:pointer;';
     const startBtn = document.createElement('button');
-    startBtn.textContent = '▶ Start!';
+    startBtn.textContent = 'â–¶ Start!';
     startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#b44aff,#ff44aa);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;color:#fff;';
     const info = document.createElement('div');
     info.style.cssText = 'text-align:center;color:#666;font-size:0.75rem;margin-top:8px;';
@@ -2646,7 +2646,7 @@ function initGeoDash() {
                 drawFrame(true);
 
                 setTimeout(() => {
-                    startBtn.textContent = '🔄 Retry (Attempt ' + attempts + ')';
+                    startBtn.textContent = 'ðŸ”„ Retry (Attempt ' + attempts + ')';
                     showGameOver('Crashed!', score, 'geodash', () => { reset(); });
                 }, 500);
                 return;
@@ -2779,7 +2779,7 @@ function initGeoDash() {
         reset();
         attempts++;
         running = true;
-        startBtn.textContent = '🔺 Running...';
+        startBtn.textContent = 'ðŸ”º Running...';
         frameId = requestAnimationFrame(step);
     };
 
@@ -2807,7 +2807,7 @@ function initGeoDash() {
     ctx.fillStyle = '#b44aff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🔺 Geometry Dash', W / 2, H / 2 - 30);
+    ctx.fillText('ðŸ”º Geometry Dash', W / 2, H / 2 - 30);
     ctx.font = '12px Rajdhani, sans-serif';
     ctx.fillStyle = '#888';
     ctx.fillText('Tap or press SPACE to jump!', W / 2, H / 2);
@@ -2823,7 +2823,7 @@ function initGeoDash() {
 
 // ==================== KING SHOT ====================
 function initKingShot() {
-    gameTitle.textContent = '👑 King Shot';
+    gameTitle.textContent = 'ðŸ‘‘ King Shot';
 
     const canvas = document.createElement('canvas');
     canvas.width = 380;
@@ -2861,7 +2861,7 @@ function initKingShot() {
             const cols = lvl + 1;
             for (let c = 0; c < cols; c++) {
                 blocks.push({ x: baseX + c * 50, y: groundY - blockH, w: blockW, h: blockH, vy: 0, vx: 0, fallen: false });
-                targets.push({ x: baseX + c * 50 + blockW / 2, y: groundY - blockH - 15, r: 12, hit: false, emoji: '😈' });
+                targets.push({ x: baseX + c * 50 + blockW / 2, y: groundY - blockH - 15, r: 12, hit: false, emoji: 'ðŸ˜ˆ' });
             }
         } else if (lvl <= 4) {
             // Two rows
@@ -2870,9 +2870,9 @@ function initKingShot() {
                 // Plank on top
             }
             blocks.push({ x: baseX - 5, y: groundY - blockH - 10, w: 80, h: 10, vy: 0, vx: 0, fallen: false });
-            targets.push({ x: baseX + 30, y: groundY - blockH - 35, r: 12, hit: false, emoji: '👑' });
-            targets.push({ x: baseX - 10, y: groundY - 15, r: 10, hit: false, emoji: '😈' });
-            targets.push({ x: baseX + 70, y: groundY - 15, r: 10, hit: false, emoji: '😈' });
+            targets.push({ x: baseX + 30, y: groundY - blockH - 35, r: 12, hit: false, emoji: 'ðŸ‘‘' });
+            targets.push({ x: baseX - 10, y: groundY - 15, r: 10, hit: false, emoji: 'ðŸ˜ˆ' });
+            targets.push({ x: baseX + 70, y: groundY - 15, r: 10, hit: false, emoji: 'ðŸ˜ˆ' });
         } else {
             // Complex structure
             const numCols = Math.min(3 + Math.floor(lvl / 3), 5);
@@ -2894,7 +2894,7 @@ function initKingShot() {
                     x: baseX + c * 40 - (numCols * 20) + 10,
                     y: groundY - blockH * numRows - numRows * 10 - 15,
                     r: 11, hit: false,
-                    emoji: c === 1 ? '👑' : '😈'
+                    emoji: c === 1 ? 'ðŸ‘‘' : 'ðŸ˜ˆ'
                 });
             }
         }
@@ -2941,7 +2941,7 @@ function initKingShot() {
                 if (b.fallen) continue;
                 if (activeBall.x + activeBall.r > b.x && activeBall.x - activeBall.r < b.x + b.w &&
                     activeBall.y + activeBall.r > b.y && activeBall.y - activeBall.r < b.y + b.h) {
-                    // Hit block — knock it
+                    // Hit block â€” knock it
                     b.vx = activeBall.vx * 0.6;
                     b.vy = -3 - Math.random() * 2;
                     b.fallen = true;
@@ -2972,7 +2972,7 @@ function initKingShot() {
                             x: t.x, y: t.y,
                             vx: (Math.random() - 0.5) * 6,
                             vy: (Math.random() - 0.5) * 6,
-                            life: 25, color: t.emoji === '👑' ? '#ffaa00' : '#ff4444'
+                            life: 25, color: t.emoji === 'ðŸ‘‘' ? '#ffaa00' : '#ff4444'
                         });
                     }
                 }
@@ -3140,7 +3140,7 @@ function initKingShot() {
         ctx.fillText('Level ' + level, 8, 8);
         ctx.textAlign = 'center';
         ctx.fillStyle = '#ffaa00';
-        ctx.fillText('🔵'.repeat(shotsLeft), W / 2, 6);
+        ctx.fillText('ðŸ”µ'.repeat(shotsLeft), W / 2, 6);
         ctx.textAlign = 'right';
         ctx.fillStyle = '#00ff88';
         ctx.fillText('Score: ' + score, W - 8, 8);
@@ -3213,7 +3213,7 @@ function initKingShot() {
     ctx.fillStyle = '#ffaa00';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('👑 Drag to Aim & Shoot!', W / 2, H / 2 - 40);
+    ctx.fillText('ðŸ‘‘ Drag to Aim & Shoot!', W / 2, H / 2 - 40);
 
     running = true;
 
@@ -3231,7 +3231,7 @@ function initKingShot() {
 
 // ==================== MINICRAFT (Mini Minecraft) ====================
 function initMiniCraft() {
-    gameTitle.textContent = '⛏️ MiniCraft';
+    gameTitle.textContent = 'â›ï¸ MiniCraft';
 
     const TILE = 24;
     const COLS = 16;
@@ -3254,15 +3254,15 @@ function initMiniCraft() {
     controls.innerHTML = `
         <div style="display:grid;grid-template-columns:40px 40px 40px;grid-template-rows:40px 40px;gap:3px;">
             <div></div>
-            <button id="mc-up" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬆</button>
+            <button id="mc-up" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">â¬†</button>
             <div></div>
-            <button id="mc-left" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬅</button>
-            <button id="mc-down" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬇</button>
-            <button id="mc-right" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">➡</button>
+            <button id="mc-left" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">â¬…</button>
+            <button id="mc-down" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">â¬‡</button>
+            <button id="mc-right" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">âž¡</button>
         </div>
         <div style="display:flex;flex-direction:column;gap:3px;margin-left:20px;">
-            <button id="mc-mine" style="padding:8px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ff4444;border-radius:8px;color:#ff4444;cursor:pointer;">⛏ Mine</button>
-            <button id="mc-place" style="padding:8px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #00ff88;border-radius:8px;color:#00ff88;cursor:pointer;">🧱 Place</button>
+            <button id="mc-mine" style="padding:8px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ff4444;border-radius:8px;color:#ff4444;cursor:pointer;">â› Mine</button>
+            <button id="mc-place" style="padding:8px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #00ff88;border-radius:8px;color:#00ff88;cursor:pointer;">ðŸ§± Place</button>
         </div>
     `;
 
@@ -3619,7 +3619,7 @@ function initMiniCraft() {
 
 // ==================== 99 NIGHTS IN THE FOREST ====================
 function initForest99() {
-    gameTitle.textContent = '🌲 99 Nights';
+    gameTitle.textContent = 'ðŸŒ² 99 Nights';
 
     const canvas = document.createElement('canvas');
     canvas.width = 360;
@@ -3627,20 +3627,20 @@ function initForest99() {
     canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #1B5E20;border-radius:12px;background:#0a0a0a;touch-action:none;';
 
     const startBtn = document.createElement('button');
-    startBtn.textContent = '▶ Enter the Forest';
+    startBtn.textContent = 'â–¶ Enter the Forest';
     startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#1B5E20,#004D40);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;color:#A5D6A7;';
 
     const dpad = document.createElement('div');
     dpad.style.cssText = 'display:grid;grid-template-columns:45px 45px 45px;grid-template-rows:45px 45px;gap:3px;justify-content:center;margin-top:8px;';
     dpad.innerHTML = `
         <div></div>
-        <button id="f99-up" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">⬆</button>
+        <button id="f99-up" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">â¬†</button>
         <div></div>
-        <button id="f99-left" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">⬅</button>
-        <button id="f99-action" style="font-size:0.8rem;background:#0a1a0a;border:2px solid #FF6F00;border-radius:8px;color:#FFA726;cursor:pointer;">🔦</button>
-        <button id="f99-right" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">➡</button>
+        <button id="f99-left" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">â¬…</button>
+        <button id="f99-action" style="font-size:0.8rem;background:#0a1a0a;border:2px solid #FF6F00;border-radius:8px;color:#FFA726;cursor:pointer;">ðŸ”¦</button>
+        <button id="f99-right" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">âž¡</button>
         <div></div>
-        <button id="f99-down" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">⬇</button>
+        <button id="f99-down" style="font-size:1.2rem;background:#0a1a0a;border:2px solid #2E7D32;border-radius:8px;color:#4CAF50;cursor:pointer;">â¬‡</button>
         <div></div>
     `;
 
@@ -3716,7 +3716,7 @@ function initForest99() {
             let gx, gy;
             do { gx = 1 + Math.floor(Math.random() * (COLS - 2)); gy = 1 + Math.floor(Math.random() * (ROWS - 2)); }
             while (world[gy][gx] !== 0 || (Math.abs(gx - player.x) < 4 && Math.abs(gy - player.y) < 4));
-            ghosts.push({x: gx, y: gy, moveTimer: 0, emoji: ['👻','💀','🧟','😈','👹','🦇','🕷️','🎃'][i % 8]});
+            ghosts.push({x: gx, y: gy, moveTimer: 0, emoji: ['ðŸ‘»','ðŸ’€','ðŸ§Ÿ','ðŸ˜ˆ','ðŸ‘¹','ðŸ¦‡','ðŸ•·ï¸','ðŸŽƒ'][i % 8]});
         }
 
         collected = 0;
@@ -3746,11 +3746,11 @@ function initForest99() {
                 // Win this night!
                 night++;
                 flashlight = Math.min(100, flashlight + 20);
-                showMsg('☀️ Night ' + (night - 1) + ' survived! Entering night ' + night + '...');
+                showMsg('â˜€ï¸ Night ' + (night - 1) + ' survived! Entering night ' + night + '...');
                 generateForest();
                 return;
             } else {
-                showMsg('🔑 Need ' + (keysNeeded - keysHave) + ' more key(s)!');
+                showMsg('ðŸ”‘ Need ' + (keysNeeded - keysHave) + ' more key(s)!');
                 return;
             }
         }
@@ -3762,9 +3762,9 @@ function initForest99() {
         for (const item of items) {
             if (!item.collected && item.x === nx && item.y === ny) {
                 item.collected = true;
-                if (item.type === ITEM_KEY) { collected++; showMsg('🔑 Got a key! (' + collected + '/' + totalItems + ')'); }
-                if (item.type === ITEM_BATTERY) { flashlight = Math.min(100, flashlight + 30); showMsg('🔋 Flashlight recharged!'); }
-                if (item.type === ITEM_MEDKIT) { health = Math.min(100, health + 25); showMsg('💊 Health restored!'); }
+                if (item.type === ITEM_KEY) { collected++; showMsg('ðŸ”‘ Got a key! (' + collected + '/' + totalItems + ')'); }
+                if (item.type === ITEM_BATTERY) { flashlight = Math.min(100, flashlight + 30); showMsg('ðŸ”‹ Flashlight recharged!'); }
+                if (item.type === ITEM_MEDKIT) { health = Math.min(100, health + 25); showMsg('ðŸ’Š Health restored!'); }
             }
         }
 
@@ -3772,7 +3772,7 @@ function initForest99() {
         for (const g of ghosts) {
             if (g.x === nx && g.y === ny) {
                 health -= 20;
-                showMsg('👻 A ghost got you! -20 HP');
+                showMsg('ðŸ‘» A ghost got you! -20 HP');
                 // Push ghost away
                 g.x = Math.max(1, Math.min(COLS - 2, g.x + (Math.random() < 0.5 ? 3 : -3)));
                 g.y = Math.max(1, Math.min(ROWS - 2, g.y + (Math.random() < 0.5 ? 3 : -3)));
@@ -3863,22 +3863,22 @@ function initForest99() {
                     ctx.font = `${TILE - 4}px serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('🌲', px + TILE / 2, py + TILE / 2);
+                    ctx.fillText('ðŸŒ²', px + TILE / 2, py + TILE / 2);
                 } else if (tile === BUSH) {
                     ctx.font = `${TILE - 6}px serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('🌿', px + TILE / 2, py + TILE / 2);
+                    ctx.fillText('ðŸŒ¿', px + TILE / 2, py + TILE / 2);
                 } else if (tile === ROCK) {
                     ctx.font = `${TILE - 4}px serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('🪨', px + TILE / 2, py + TILE / 2);
+                    ctx.fillText('ðŸª¨', px + TILE / 2, py + TILE / 2);
                 } else if (tile === EXIT) {
                     ctx.font = `${TILE - 4}px serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('🚪', px + TILE / 2, py + TILE / 2);
+                    ctx.fillText('ðŸšª', px + TILE / 2, py + TILE / 2);
                 }
             }
         }
@@ -3889,7 +3889,7 @@ function initForest99() {
             const dist = Math.sqrt((item.x - player.x) ** 2 + (item.y - player.y) ** 2);
             if (dist > viewDist + 1) continue;
             ctx.globalAlpha = Math.max(0, 1 - dist / (viewDist + 1));
-            const emoji = item.type === ITEM_KEY ? '🔑' : (item.type === ITEM_BATTERY ? '🔋' : '💊');
+            const emoji = item.type === ITEM_KEY ? 'ðŸ”‘' : (item.type === ITEM_BATTERY ? 'ðŸ”‹' : 'ðŸ’Š');
             ctx.font = `${TILE - 6}px serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -3912,7 +3912,7 @@ function initForest99() {
         ctx.font = `${TILE}px serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('🧑', player.x * TILE + TILE / 2, player.y * TILE + TILE / 2);
+        ctx.fillText('ðŸ§‘', player.x * TILE + TILE / 2, player.y * TILE + TILE / 2);
 
         // Flashlight glow
         if (flashlightOn) {
@@ -3954,7 +3954,7 @@ function initForest99() {
         ctx.fillStyle = '#fff';
         ctx.font = '9px Orbitron';
         ctx.textAlign = 'center';
-        ctx.fillText('❤️' + health, 120, 9);
+        ctx.fillText('â¤ï¸' + health, 120, 9);
 
         // Flashlight bar
         ctx.fillStyle = '#333';
@@ -3965,13 +3965,13 @@ function initForest99() {
         ctx.strokeRect(165, 8, 50, 12);
         ctx.fillStyle = '#fff';
         ctx.font = '9px Orbitron';
-        ctx.fillText('🔦' + Math.round(flashlight), 190, 9);
+        ctx.fillText('ðŸ”¦' + Math.round(flashlight), 190, 9);
 
         // Keys
         ctx.textAlign = 'right';
         ctx.fillStyle = '#FFD700';
         ctx.font = 'bold 11px Orbitron';
-        ctx.fillText('🔑' + collected + '/' + totalItems, W - 6, 7);
+        ctx.fillText('ðŸ”‘' + collected + '/' + totalItems, W - 6, 7);
 
         // Message
         if (msgTimer > 0) {
@@ -3997,7 +3997,7 @@ function initForest99() {
             if (flashlight <= 0) {
                 flashlight = 0;
                 flashlightOn = false;
-                showMsg('🔦 Flashlight died!');
+                showMsg('ðŸ”¦ Flashlight died!');
             }
         }
 
@@ -4016,7 +4016,7 @@ function initForest99() {
         msgTimer = 0;
         player = {x: 5, y: 5};
         generateForest();
-        showMsg('🌙 Night 1... Find the keys and reach the door!');
+        showMsg('ðŸŒ™ Night 1... Find the keys and reach the door!');
         frameId = requestAnimationFrame(gameLoop);
     }
 
@@ -4027,7 +4027,7 @@ function initForest99() {
             case 'ArrowLeft': case 'a': case 'A': movePlayer(-1, 0); break;
             case 'ArrowRight': case 'd': case 'D': movePlayer(1, 0); break;
             case 'f': case 'F':
-                if (flashlight > 0) { flashlightOn = !flashlightOn; showMsg(flashlightOn ? '🔦 Light ON' : '🔦 Light OFF'); }
+                if (flashlight > 0) { flashlightOn = !flashlightOn; showMsg(flashlightOn ? 'ðŸ”¦ Light ON' : 'ðŸ”¦ Light OFF'); }
                 break;
         }
     }
@@ -4047,7 +4047,7 @@ function initForest99() {
     setupBtn('f99-left', () => movePlayer(-1, 0));
     setupBtn('f99-right', () => movePlayer(1, 0));
     setupBtn('f99-action', () => {
-        if (flashlight > 0) { flashlightOn = !flashlightOn; showMsg(flashlightOn ? '🔦 Light ON' : '🔦 Light OFF'); }
+        if (flashlight > 0) { flashlightOn = !flashlightOn; showMsg(flashlightOn ? 'ðŸ”¦ Light ON' : 'ðŸ”¦ Light OFF'); }
     });
 
     startBtn.onclick = () => {
@@ -4064,11 +4064,11 @@ function initForest99() {
     ctx.fillStyle = '#2E7D32';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🌲 99 Nights 🌲', W / 2, H / 2 - 30);
+    ctx.fillText('ðŸŒ² 99 Nights ðŸŒ²', W / 2, H / 2 - 30);
     ctx.font = '11px Rajdhani, sans-serif';
     ctx.fillStyle = '#666';
     ctx.fillText('Survive the haunted forest...', W / 2, H / 2);
-    ctx.fillText('Find keys 🔑 Avoid ghosts 👻 Reach the exit 🚪', W / 2, H / 2 + 20);
+    ctx.fillText('Find keys ðŸ”‘ Avoid ghosts ðŸ‘» Reach the exit ðŸšª', W / 2, H / 2 + 20);
 
     gameCleanup = () => {
         running = false;
@@ -4079,7 +4079,7 @@ function initForest99() {
 
 // ==================== BROOKHAVEN ====================
 function initBrookhaven() {
-    gameTitle.textContent = '🏘️ Brookhaven';
+    gameTitle.textContent = 'ðŸ˜ï¸ Brookhaven';
 
     const TILE = 20;
     const VIEW_W = 18;
@@ -4100,13 +4100,13 @@ function initBrookhaven() {
     dpad.style.cssText = 'display:grid;grid-template-columns:42px 42px 42px;grid-template-rows:42px 42px;gap:3px;justify-content:center;margin-top:8px;';
     dpad.innerHTML = `
         <div></div>
-        <button id="bh-up" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬆</button>
+        <button id="bh-up" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">â¬†</button>
         <div></div>
-        <button id="bh-left" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬅</button>
+        <button id="bh-left" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">â¬…</button>
         <button id="bh-action" style="font-size:0.7rem;background:#1a1a2e;border:2px solid #ffaa00;border-radius:8px;color:#ffaa00;cursor:pointer;">Enter</button>
-        <button id="bh-right" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">➡</button>
+        <button id="bh-right" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">âž¡</button>
         <div></div>
-        <button id="bh-down" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬇</button>
+        <button id="bh-down" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">â¬‡</button>
         <div></div>
     `;
 
@@ -4176,23 +4176,23 @@ function initBrookhaven() {
     }
 
     let npcs = [
-        {emoji:'👩',name:'Sarah',x:4,y:7,sayings:['Hi! Welcome to Brookhaven!','Nice weather!','Visit the park!'],moveTimer:0},
-        {emoji:'👮',name:'Officer Dan',x:16,y:7,sayings:['Stay safe, citizen!','No running!','Peaceful day.'],moveTimer:0},
-        {emoji:'🧑‍⚕️',name:'Dr. Kim',x:20,y:7,sayings:['Stay healthy!','Drink water!','An apple a day!'],moveTimer:0},
-        {emoji:'👨‍🏫',name:'Mr. Lee',x:3,y:14,sayings:['School at 8 AM!','Homework done?','Reading is fun!'],moveTimer:0},
-        {emoji:'🧑‍🍳',name:'Chef Marco',x:16,y:4,sayings:['Special: pizza! 🍕','Want a cookie? 🍪','Come eat!'],moveTimer:0},
-        {emoji:'👧',name:'Emma',x:30,y:7,sayings:['Wanna play? 😊','I love this town!','Be friends!'],moveTimer:0},
-        {emoji:'👴',name:'Grandpa Joe',x:6,y:24,sayings:['Lake is beautiful...','All fields once.','Catch fish?'],moveTimer:0},
-        {emoji:'🐕',name:'Buddy',x:18,y:25,sayings:['Woof! 🐾','*wags tail*','Woof woof! 🦴'],moveTimer:0},
+        {emoji:'ðŸ‘©',name:'Sarah',x:4,y:7,sayings:['Hi! Welcome to Brookhaven!','Nice weather!','Visit the park!'],moveTimer:0},
+        {emoji:'ðŸ‘®',name:'Officer Dan',x:16,y:7,sayings:['Stay safe, citizen!','No running!','Peaceful day.'],moveTimer:0},
+        {emoji:'ðŸ§‘â€âš•ï¸',name:'Dr. Kim',x:20,y:7,sayings:['Stay healthy!','Drink water!','An apple a day!'],moveTimer:0},
+        {emoji:'ðŸ‘¨â€ðŸ«',name:'Mr. Lee',x:3,y:14,sayings:['School at 8 AM!','Homework done?','Reading is fun!'],moveTimer:0},
+        {emoji:'ðŸ§‘â€ðŸ³',name:'Chef Marco',x:16,y:4,sayings:['Special: pizza! ðŸ•','Want a cookie? ðŸª','Come eat!'],moveTimer:0},
+        {emoji:'ðŸ‘§',name:'Emma',x:30,y:7,sayings:['Wanna play? ðŸ˜Š','I love this town!','Be friends!'],moveTimer:0},
+        {emoji:'ðŸ‘´',name:'Grandpa Joe',x:6,y:24,sayings:['Lake is beautiful...','All fields once.','Catch fish?'],moveTimer:0},
+        {emoji:'ðŸ•',name:'Buddy',x:18,y:25,sayings:['Woof! ðŸ¾','*wags tail*','Woof woof! ðŸ¦´'],moveTimer:0},
     ];
 
     let player, money, currentLocation, msgText, msgTimer, timeOfDay, dayTimer, bhInventory;
 
     function resetGame() {
         buildTown();
-        player={x:10,y:10,emoji:'🧑'}; money=100; currentLocation='Outside';
+        player={x:10,y:10,emoji:'ðŸ§‘'}; money=100; currentLocation='Outside';
         msgText=''; msgTimer=0; timeOfDay=0; dayTimer=0;
-        bhInventory=['🔑 House Key'];
+        bhInventory=['ðŸ”‘ House Key'];
         draw();
     }
 
@@ -4205,7 +4205,7 @@ function initBrookhaven() {
         if(tile===TTREE||tile===WATER) return;
         if(tile>=10&&tile<=16){
             const b=buildings.find(b=>nx>=b.x&&nx<b.x+b.w&&ny>=b.y&&ny<b.y+b.h);
-            if(b) showMsg('🏠 '+b.name+' — Press E to enter!');
+            if(b) showMsg('ðŸ  '+b.name+' â€” Press E to enter!');
             return;
         }
         player.x=nx; player.y=ny;
@@ -4226,22 +4226,22 @@ function initBrookhaven() {
                 showMsg(npc.emoji+' '+npc.name+': "'+npc.sayings[Math.floor(Math.random()*npc.sayings.length)]+'"');return;
             }
         }
-        if(map[player.y][player.x]===BCAR){showMsg('🚗 Vroom vroom! 📯');return;}
+        if(map[player.y][player.x]===BCAR){showMsg('ðŸš— Vroom vroom! ðŸ“¯');return;}
         showMsg('Nothing here.');
     }
 
     function enterBuilding(b){
         if(b.type===BSHOP){
-            if(money>=10){money-=10;const items=['🍕 Pizza','🍦 Ice Cream','🧸 Teddy Bear','📱 Toy Phone','🎮 Gameboy','👟 Sneakers'];
+            if(money>=10){money-=10;const items=['ðŸ• Pizza','ðŸ¦ Ice Cream','ðŸ§¸ Teddy Bear','ðŸ“± Toy Phone','ðŸŽ® Gameboy','ðŸ‘Ÿ Sneakers'];
                 const item=items[Math.floor(Math.random()*items.length)];bhInventory.push(item);
-                showMsg('🛒 Bought '+item+' for $10! ($'+money+' left)',150);
-            }else showMsg('💸 Not enough! You have $'+money);
-        }else if(b.type===BPOLICE){money+=20;showMsg('👮 "Thanks for visiting! Here\'s $20!" 💰');}
-        else if(b.type===BHOSPITAL){showMsg('🏥 "Have a lollipop! 🍭"');bhInventory.push('🍭 Lollipop');}
+                showMsg('ðŸ›’ Bought '+item+' for $10! ($'+money+' left)',150);
+            }else showMsg('ðŸ’¸ Not enough! You have $'+money);
+        }else if(b.type===BPOLICE){money+=20;showMsg('ðŸ‘® "Thanks for visiting! Here\'s $20!" ðŸ’°');}
+        else if(b.type===BHOSPITAL){showMsg('ðŸ¥ "Have a lollipop! ðŸ­"');bhInventory.push('ðŸ­ Lollipop');}
         else if(b.type===BSCHOOL){
-            const facts=['The sun is a star! ⭐','Octopuses have 3 hearts! 🐙','Honey never spoils! 🍯','Bananas are berries! 🍌','Lightning is 5x hotter than the sun! ⚡'];
-            showMsg('📚 Learned: '+facts[Math.floor(Math.random()*facts.length)],150);
-        }else showMsg('🏠 Visited '+b.name+'! Cozy inside. 🛋️');
+            const facts=['The sun is a star! â­','Octopuses have 3 hearts! ðŸ™','Honey never spoils! ðŸ¯','Bananas are berries! ðŸŒ','Lightning is 5x hotter than the sun! âš¡'];
+            showMsg('ðŸ“š Learned: '+facts[Math.floor(Math.random()*facts.length)],150);
+        }else showMsg('ðŸ  Visited '+b.name+'! Cozy inside. ðŸ›‹ï¸');
         draw();
     }
 
@@ -4263,7 +4263,7 @@ function initBrookhaven() {
         const camX=Math.max(0,Math.min(MAP_W-VIEW_W,player.x-Math.floor(VIEW_W/2)));
         const camY=Math.max(0,Math.min(MAP_H-VIEW_H,player.y-Math.floor(VIEW_H/2)));
         dayTimer++;if(dayTimer>600){dayTimer=0;timeOfDay=(timeOfDay+1)%4;}
-        const timeNames=['🌅 Morning','☀️ Afternoon','🌇 Evening','🌙 Night'];
+        const timeNames=['ðŸŒ… Morning','â˜€ï¸ Afternoon','ðŸŒ‡ Evening','ðŸŒ™ Night'];
         const skyColors=['#87CEEB','#64B5F6','#FF8A65','#1a1a3e'];
         ctx.fillStyle=skyColors[timeOfDay]; ctx.fillRect(0,0,W,HH);
 
@@ -4294,13 +4294,13 @@ function initBrookhaven() {
         ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,W,22);
         ctx.font='bold 10px Orbitron, sans-serif';ctx.textBaseline='top';
         ctx.textAlign='left';ctx.fillStyle='#4CAF50';ctx.fillText(timeNames[timeOfDay],4,5);
-        ctx.textAlign='center';ctx.fillStyle='#ffaa00';ctx.fillText('💰$'+money,W/2,5);
-        ctx.textAlign='right';ctx.fillStyle='#00d4ff';ctx.fillText('🎒'+bhInventory.length,W-4,5);
+        ctx.textAlign='center';ctx.fillStyle='#ffaa00';ctx.fillText('ðŸ’°$'+money,W/2,5);
+        ctx.textAlign='right';ctx.fillStyle='#00d4ff';ctx.fillText('ðŸŽ’'+bhInventory.length,W-4,5);
 
         if(msgTimer>0){msgTimer--;ctx.globalAlpha=Math.min(1,msgTimer/30);ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(10,HH-45,W-20,32);ctx.fillStyle='#fff';ctx.font='11px Rajdhani, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(msgText,W/2,HH-29);ctx.globalAlpha=1;}
 
         const st=document.getElementById('bh-status');
-        if(st) st.textContent='📍 '+currentLocation+' | 🎒 '+bhInventory.join(', ');
+        if(st) st.textContent='ðŸ“ '+currentLocation+' | ðŸŽ’ '+bhInventory.join(', ');
     }
 
     let frameId;
@@ -4322,7 +4322,7 @@ function initBrookhaven() {
     setupBtn('bh-left',()=>movePlayer(-1,0));setupBtn('bh-right',()=>movePlayer(1,0));
     setupBtn('bh-action',interact);
 
-    resetGame();showMsg('🏘️ Welcome to Brookhaven! Explore the town!',150);
+    resetGame();showMsg('ðŸ˜ï¸ Welcome to Brookhaven! Explore the town!',150);
     frameId=requestAnimationFrame(gameLoop);
     gameScoreDisplay.textContent='';
 
@@ -4331,7 +4331,7 @@ function initBrookhaven() {
 
 // ==================== GORILLA TAG ====================
 function initGorillaTag() {
-    gameTitle.textContent = '🦍 Gorilla Tag';
+    gameTitle.textContent = 'ðŸ¦ Gorilla Tag';
 
     const canvas = document.createElement('canvas');
     canvas.width = 380;
@@ -4339,20 +4339,20 @@ function initGorillaTag() {
     canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #4CAF50;border-radius:12px;background:#1a2e1a;touch-action:none;';
 
     const startBtn = document.createElement('button');
-    startBtn.textContent = '▶ Start!';
+    startBtn.textContent = 'â–¶ Start!';
     startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#4CAF50,#8BC34A);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;color:#fff;';
 
     const dpad = document.createElement('div');
     dpad.style.cssText = 'display:grid;grid-template-columns:45px 45px 45px;grid-template-rows:45px 45px;gap:3px;justify-content:center;margin-top:8px;';
     dpad.innerHTML = `
         <div></div>
-        <button id="gt-up" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">⬆</button>
+        <button id="gt-up" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">â¬†</button>
         <div></div>
-        <button id="gt-left" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">⬅</button>
+        <button id="gt-left" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">â¬…</button>
         <button id="gt-jump" style="font-size:0.8rem;background:#1a2e1a;border:2px solid #FF9800;border-radius:8px;color:#FF9800;cursor:pointer;">Jump</button>
-        <button id="gt-right" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">➡</button>
+        <button id="gt-right" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">âž¡</button>
         <div></div>
-        <button id="gt-down" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">⬇</button>
+        <button id="gt-down" style="font-size:1.2rem;background:#1a2e1a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">â¬‡</button>
         <div></div>
     `;
 
@@ -4450,7 +4450,7 @@ function initGorillaTag() {
             }
         },1000);
 
-        startBtn.textContent = isIT ? '🦍 You\'re IT! Tag them!' : '🏃 RUN! Don\'t get tagged!';
+        startBtn.textContent = isIT ? 'ðŸ¦ You\'re IT! Tag them!' : 'ðŸƒ RUN! Don\'t get tagged!';
     }
 
     function resolveCollisions(obj) {
@@ -4645,7 +4645,7 @@ function initGorillaTag() {
                 ctx.globalAlpha = 1;
                 ctx.font = '12px serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('✅', g.x+g.w/2, g.y-5);
+                ctx.fillText('âœ…', g.x+g.w/2, g.y-5);
             }
 
             // Exclamation when close
@@ -4654,7 +4654,7 @@ function initGorillaTag() {
                 if (dist < 60) {
                     ctx.font = '14px serif';
                     ctx.textAlign = 'center';
-                    ctx.fillText(isIT?'😱':'😤', g.x+g.w/2, g.y-10);
+                    ctx.fillText(isIT?'ðŸ˜±':'ðŸ˜¤', g.x+g.w/2, g.y-10);
                 }
             }
         }
@@ -4699,7 +4699,7 @@ function initGorillaTag() {
         ctx.fillText('Round '+(round+1), 6, 7);
         ctx.textAlign = 'center';
         ctx.fillStyle = timer<=5?'#f44336':'#00d4ff';
-        ctx.fillText('⏱ '+timer+'s', W/2, 7);
+        ctx.fillText('â± '+timer+'s', W/2, 7);
         ctx.textAlign = 'right';
         ctx.fillStyle = '#4CAF50';
         if(isIT) ctx.fillText('Tagged: '+tagged+'/'+gorillas.length, W-6, 7);
@@ -4712,7 +4712,7 @@ function initGorillaTag() {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = isIT ? '#f44336' : '#4CAF50';
-        ctx.fillText(isIT ? '🦍 YOU\'RE IT! Tag them all!' : '🏃 ESCAPE! Don\'t get tagged!', W/2, H-10);
+        ctx.fillText(isIT ? 'ðŸ¦ YOU\'RE IT! Tag them all!' : 'ðŸƒ ESCAPE! Don\'t get tagged!', W/2, H-10);
     }
 
     function onKey(e) {
@@ -4759,7 +4759,7 @@ function initGorillaTag() {
     ctx.fillStyle = '#4CAF50';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🦍 Gorilla Tag', W/2, H/2-30);
+    ctx.fillText('ðŸ¦ Gorilla Tag', W/2, H/2-30);
     ctx.font = '12px Rajdhani, sans-serif';
     ctx.fillStyle = '#888';
     ctx.fillText('Swing through trees, tag gorillas!', W/2, H/2);
@@ -4778,17 +4778,17 @@ function initGorillaTag() {
 
 // ==================== FNAF (Freddy's Pizzeria) ====================
 function initFNAF() {
-    gameTitle.textContent = '🐻 Freddy\'s Pizzeria';
+    gameTitle.textContent = 'ðŸ» Freddy\'s Pizzeria';
 
     gameArea.innerHTML = `
         <div id="fnaf-game" style="max-width:380px;margin:0 auto;text-align:center;font-family:Rajdhani,sans-serif;">
             <div id="fnaf-screen" style="background:#0a0a0a;border:2px solid #333;border-radius:12px;min-height:280px;position:relative;overflow:hidden;padding:10px;">
             </div>
             <div id="fnaf-controls" style="display:flex;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap;">
-                <button id="fnaf-cam" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">📹 Cameras</button>
-                <button id="fnaf-ldoor" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ff4444;border-radius:8px;color:#ff4444;cursor:pointer;">🚪 Left Door</button>
-                <button id="fnaf-rdoor" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ff4444;border-radius:8px;color:#ff4444;cursor:pointer;">🚪 Right Door</button>
-                <button id="fnaf-light" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ffaa00;border-radius:8px;color:#ffaa00;cursor:pointer;">💡 Light</button>
+                <button id="fnaf-cam" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">ðŸ“¹ Cameras</button>
+                <button id="fnaf-ldoor" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ff4444;border-radius:8px;color:#ff4444;cursor:pointer;">ðŸšª Left Door</button>
+                <button id="fnaf-rdoor" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ff4444;border-radius:8px;color:#ff4444;cursor:pointer;">ðŸšª Right Door</button>
+                <button id="fnaf-light" style="padding:10px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ffaa00;border-radius:8px;color:#ffaa00;cursor:pointer;">ðŸ’¡ Light</button>
             </div>
             <div style="color:#555;font-size:0.7rem;margin-top:6px;">Check cameras, close doors when animatronics are near, survive until 6 AM!</div>
         </div>
@@ -4797,16 +4797,16 @@ function initFNAF() {
     const screen = document.getElementById('fnaf-screen');
 
     const animatronics = [
-        {name:'Freddy', emoji:'🐻', room:0, aggressiveness:1, color:'#8B4513'},
-        {name:'Bonnie', emoji:'🐰', room:0, aggressiveness:2, color:'#6A1B9A'},
-        {name:'Chica', emoji:'🐥', room:0, aggressiveness:2, color:'#F9A825'},
-        {name:'Foxy', emoji:'🦊', room:0, aggressiveness:3, color:'#D84315'}
+        {name:'Freddy', emoji:'ðŸ»', room:0, aggressiveness:1, color:'#8B4513'},
+        {name:'Bonnie', emoji:'ðŸ°', room:0, aggressiveness:2, color:'#6A1B9A'},
+        {name:'Chica', emoji:'ðŸ¥', room:0, aggressiveness:2, color:'#F9A825'},
+        {name:'Foxy', emoji:'ðŸ¦Š', room:0, aggressiveness:3, color:'#D84315'}
     ];
 
     // Rooms: 0=Show Stage, 1=Dining Area, 2=Backstage, 3=West Hall, 4=East Hall,
     // 5=Left Door, 6=Right Door, 7=Kitchen, 8=Supply Closet, 9=Pirate Cove (Foxy)
     const roomNames = ['Show Stage','Dining Area','Backstage','West Hall','East Hall','Left Door','Right Door','Kitchen','Supply Closet','Pirate Cove'];
-    const roomEmojis = ['🎤','🍽️','📦','🚶‍♂️','🚶','🚪','🚪','🍕','🧹','🏴‍☠️'];
+    const roomEmojis = ['ðŸŽ¤','ðŸ½ï¸','ðŸ“¦','ðŸš¶â€â™‚ï¸','ðŸš¶','ðŸšª','ðŸšª','ðŸ•','ðŸ§¹','ðŸ´â€â˜ ï¸'];
 
     // Movement paths
     const paths = {
@@ -4867,11 +4867,11 @@ function initFNAF() {
                 const isNew = setHigh('fnaf', night);
                 screen.innerHTML = `
                     <div style="padding:40px;text-align:center;">
-                        <div style="font-size:4rem;">☀️</div>
+                        <div style="font-size:4rem;">â˜€ï¸</div>
                         <div style="font-size:2rem;color:#ffaa00;font-family:Orbitron,sans-serif;margin:10px 0;">6 AM</div>
-                        <div style="color:#4CAF50;font-size:1.3rem;">You survived Night ${night}! 🎉</div>
-                        ${isNew ? '<div style="color:#ffaa00;margin:5px 0;">⭐ New Record!</div>' : ''}
-                        <button id="fnaf-next" style="margin-top:15px;padding:10px 25px;font-size:1rem;background:linear-gradient(135deg,#ff4444,#b44aff);border:none;border-radius:8px;cursor:pointer;color:#fff;font-family:Orbitron,sans-serif;">Night ${night+1} →</button>
+                        <div style="color:#4CAF50;font-size:1.3rem;">You survived Night ${night}! ðŸŽ‰</div>
+                        ${isNew ? '<div style="color:#ffaa00;margin:5px 0;">â­ New Record!</div>' : ''}
+                        <button id="fnaf-next" style="margin-top:15px;padding:10px 25px;font-size:1rem;background:linear-gradient(135deg,#ff4444,#b44aff);border:none;border-radius:8px;cursor:pointer;color:#fff;font-family:Orbitron,sans-serif;">Night ${night+1} â†’</button>
                     </div>
                 `;
                 document.getElementById('fnaf-next').onclick = () => { night++; startNight(); };
@@ -4898,7 +4898,7 @@ function initFNAF() {
             power = Math.max(0, power - drain);
 
             if (power <= 0) {
-                // Power out — Freddy comes
+                // Power out â€” Freddy comes
                 leftDoor = false;
                 rightDoor = false;
                 viewingCams = false;
@@ -4960,9 +4960,9 @@ function initFNAF() {
             <div style="background:#0a0a0a;padding:20px;text-align:center;animation:shake 0.3s infinite;">
                 <div style="font-size:8rem;filter:drop-shadow(0 0 20px ${animatronic.color});">${animatronic.emoji}</div>
                 <div style="font-size:1.5rem;color:${animatronic.color};font-family:Orbitron,sans-serif;margin:10px 0;">${animatronic.name.toUpperCase()}!</div>
-                <div style="color:#ff4444;font-size:1.1rem;">☠️ Game Over — Night ${night}</div>
+                <div style="color:#ff4444;font-size:1.1rem;">â˜ ï¸ Game Over â€” Night ${night}</div>
                 <div style="color:#888;margin:5px 0;">Best: Night ${getHigh('fnaf')}</div>
-                <button id="fnaf-retry" style="margin-top:15px;padding:10px 25px;font-size:1rem;background:#ff4444;border:none;border-radius:8px;cursor:pointer;color:#fff;font-family:Orbitron,sans-serif;">🔄 Try Again</button>
+                <button id="fnaf-retry" style="margin-top:15px;padding:10px 25px;font-size:1rem;background:#ff4444;border:none;border-radius:8px;cursor:pointer;color:#fff;font-family:Orbitron,sans-serif;">ðŸ”„ Try Again</button>
             </div>
             <style>@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}</style>
         `;
@@ -4985,7 +4985,7 @@ function initFNAF() {
                 camContent += `<div style="font-size:2.5rem;margin:10px 0;${static1}">${inRoom.map(a=>a.emoji).join(' ')}</div>`;
                 camContent += `<div style="color:#ff4444;font-size:0.9rem;">${inRoom.map(a=>a.name).join(', ')} spotted!</div>`;
             } else {
-                camContent += `<div style="color:#4CAF50;font-size:0.9rem;margin:10px 0;">Room is clear ✅</div>`;
+                camContent += `<div style="color:#4CAF50;font-size:0.9rem;margin:10px 0;">Room is clear âœ…</div>`;
             }
 
             let camButtons = '';
@@ -5000,9 +5000,9 @@ function initFNAF() {
                 <div style="position:relative;">
                     <div style="background:#0a0a0a;padding:10px;border-bottom:1px solid #333;">
                         <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <span style="color:#00d4ff;font-family:Orbitron;font-size:0.8rem;">📹 CAM ${String(camRoom+1).padStart(2,'0')}</span>
+                            <span style="color:#00d4ff;font-family:Orbitron;font-size:0.8rem;">ðŸ“¹ CAM ${String(camRoom+1).padStart(2,'0')}</span>
                             <span style="color:#ffaa00;font-family:Orbitron;font-size:0.9rem;">${hourStr}</span>
-                            <span style="color:${power<20?'#ff4444':'#4CAF50'};font-family:Orbitron;font-size:0.8rem;">⚡${Math.round(power)}%</span>
+                            <span style="color:${power<20?'#ff4444':'#4CAF50'};font-family:Orbitron;font-size:0.8rem;">âš¡${Math.round(power)}%</span>
                         </div>
                     </div>
                     <div style="padding:15px;min-height:140px;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.02) 2px,rgba(255,255,255,0.02) 4px);">
@@ -5012,7 +5012,7 @@ function initFNAF() {
                     <div style="padding:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:2px;background:#111;">
                         ${camButtons}
                     </div>
-                    <div style="color:#666;font-size:0.7rem;margin-top:5px;">Night ${night} | 🚪L:${leftDoor?'🔴SHUT':'🟢OPEN'} R:${rightDoor?'🔴SHUT':'🟢OPEN'}</div>
+                    <div style="color:#666;font-size:0.7rem;margin-top:5px;">Night ${night} | ðŸšªL:${leftDoor?'ðŸ”´SHUT':'ðŸŸ¢OPEN'} R:${rightDoor?'ðŸ”´SHUT':'ðŸŸ¢OPEN'}</div>
                 </div>
             `;
         } else {
@@ -5022,29 +5022,29 @@ function initFNAF() {
             const leftHallCheck = animatronics.filter(a => a.room === 3);
             const rightHallCheck = animatronics.filter(a => a.room === 4);
 
-            let leftStatus = leftDoor ? '🔴 CLOSED' : '🟢 OPEN';
-            let rightStatus = rightDoor ? '🔴 CLOSED' : '🟢 OPEN';
+            let leftStatus = leftDoor ? 'ðŸ”´ CLOSED' : 'ðŸŸ¢ OPEN';
+            let rightStatus = rightDoor ? 'ðŸ”´ CLOSED' : 'ðŸŸ¢ OPEN';
 
-            let officeView = '<div style="font-size:2rem;margin:10px 0;">🖥️ Your Office 🪑</div>';
+            let officeView = '<div style="font-size:2rem;margin:10px 0;">ðŸ–¥ï¸ Your Office ðŸª‘</div>';
 
             if (lightOn) {
                 if (leftCheck.length > 0) {
-                    officeView += `<div style="color:#ff4444;font-size:1.2rem;animation:shake 0.2s infinite;">⚠️ ${leftCheck[0].emoji} ${leftCheck[0].name} AT LEFT DOOR! ⚠️</div>`;
+                    officeView += `<div style="color:#ff4444;font-size:1.2rem;animation:shake 0.2s infinite;">âš ï¸ ${leftCheck[0].emoji} ${leftCheck[0].name} AT LEFT DOOR! âš ï¸</div>`;
                 }
                 if (rightCheck.length > 0) {
-                    officeView += `<div style="color:#ff4444;font-size:1.2rem;animation:shake 0.2s infinite;">⚠️ ${rightCheck[0].emoji} ${rightCheck[0].name} AT RIGHT DOOR! ⚠️</div>`;
+                    officeView += `<div style="color:#ff4444;font-size:1.2rem;animation:shake 0.2s infinite;">âš ï¸ ${rightCheck[0].emoji} ${rightCheck[0].name} AT RIGHT DOOR! âš ï¸</div>`;
                 }
                 if (leftHallCheck.length > 0) {
-                    officeView += `<div style="color:#ffaa00;font-size:0.9rem;">👀 ${leftHallCheck.map(a=>a.emoji+' '+a.name).join(', ')} in West Hall</div>`;
+                    officeView += `<div style="color:#ffaa00;font-size:0.9rem;">ðŸ‘€ ${leftHallCheck.map(a=>a.emoji+' '+a.name).join(', ')} in West Hall</div>`;
                 }
                 if (rightHallCheck.length > 0) {
-                    officeView += `<div style="color:#ffaa00;font-size:0.9rem;">👀 ${rightHallCheck.map(a=>a.emoji+' '+a.name).join(', ')} in East Hall</div>`;
+                    officeView += `<div style="color:#ffaa00;font-size:0.9rem;">ðŸ‘€ ${rightHallCheck.map(a=>a.emoji+' '+a.name).join(', ')} in East Hall</div>`;
                 }
                 if (leftCheck.length===0 && rightCheck.length===0 && leftHallCheck.length===0 && rightHallCheck.length===0) {
-                    officeView += `<div style="color:#4CAF50;font-size:0.9rem;">All clear... for now 😰</div>`;
+                    officeView += `<div style="color:#4CAF50;font-size:0.9rem;">All clear... for now ðŸ˜°</div>`;
                 }
             } else {
-                officeView += `<div style="color:#555;font-size:0.9rem;margin:10px 0;">💡 Turn on the light to check the halls...</div>`;
+                officeView += `<div style="color:#555;font-size:0.9rem;margin:10px 0;">ðŸ’¡ Turn on the light to check the halls...</div>`;
             }
 
             screen.innerHTML = `
@@ -5053,7 +5053,7 @@ function initFNAF() {
                         <div style="display:flex;justify-content:space-between;align-items:center;">
                             <span style="color:#888;font-family:Orbitron;font-size:0.8rem;">Night ${night}</span>
                             <span style="color:#ffaa00;font-family:Orbitron;font-size:1rem;">${hourStr}</span>
-                            <span style="color:${power<20?'#ff4444':'#4CAF50'};font-family:Orbitron;font-size:0.8rem;">⚡${Math.round(power)}%</span>
+                            <span style="color:${power<20?'#ff4444':'#4CAF50'};font-family:Orbitron;font-size:0.8rem;">âš¡${Math.round(power)}%</span>
                         </div>
                     </div>
                     <div style="padding:15px;min-height:160px;background:${lightOn?'#111':'#050505'};">
@@ -5064,7 +5064,7 @@ function initFNAF() {
                             <div style="color:#888;font-size:0.7rem;">Left Door</div>
                             <div style="font-size:0.8rem;">${leftStatus}</div>
                         </div>
-                        <div style="font-size:2rem;">${lightOn?'💡':'🌑'}</div>
+                        <div style="font-size:2rem;">${lightOn?'ðŸ’¡':'ðŸŒ‘'}</div>
                         <div style="text-align:center;">
                             <div style="color:#888;font-size:0.7rem;">Right Door</div>
                             <div style="font-size:0.8rem;">${rightStatus}</div>
@@ -5083,7 +5083,7 @@ function initFNAF() {
     document.getElementById('fnaf-cam').onclick = () => {
         if (!gameActive) return;
         viewingCams = !viewingCams;
-        document.getElementById('fnaf-cam').textContent = viewingCams ? '🖥️ Office' : '📹 Cameras';
+        document.getElementById('fnaf-cam').textContent = viewingCams ? 'ðŸ–¥ï¸ Office' : 'ðŸ“¹ Cameras';
         render();
     };
     document.getElementById('fnaf-ldoor').onclick = () => {
@@ -5116,7 +5116,7 @@ function initFNAF() {
 
 // ==================== SCARY SHAWARMA ====================
 function initScaryShawarma() {
-    gameTitle.textContent = '🌯 Scary Shawarma';
+    gameTitle.textContent = 'ðŸŒ¯ Scary Shawarma';
 
     const canvas = document.createElement('canvas');
     canvas.width = 360;
@@ -5124,20 +5124,20 @@ function initScaryShawarma() {
     canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #FF6F00;border-radius:12px;background:#1a0a0a;touch-action:none;cursor:pointer;';
 
     const startBtn = document.createElement('button');
-    startBtn.textContent = '▶ Open the Kitchen!';
+    startBtn.textContent = 'â–¶ Open the Kitchen!';
     startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#FF6F00,#f44336);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;color:#fff;';
 
     const dpad = document.createElement('div');
     dpad.style.cssText = 'display:grid;grid-template-columns:45px 45px 45px;grid-template-rows:45px 45px;gap:3px;justify-content:center;margin-top:8px;';
     dpad.innerHTML = `
         <div></div>
-        <button id="ss-up" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">⬆</button>
+        <button id="ss-up" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">â¬†</button>
         <div></div>
-        <button id="ss-left" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">⬅</button>
+        <button id="ss-left" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">â¬…</button>
         <button id="ss-grab" style="font-size:0.7rem;background:#1a0a0a;border:2px solid #4CAF50;border-radius:8px;color:#4CAF50;cursor:pointer;">Grab</button>
-        <button id="ss-right" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">➡</button>
+        <button id="ss-right" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">âž¡</button>
         <div></div>
-        <button id="ss-down" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">⬇</button>
+        <button id="ss-down" style="font-size:1.2rem;background:#1a0a0a;border:2px solid #FF6F00;border-radius:8px;color:#FF6F00;cursor:pointer;">â¬‡</button>
         <div></div>
     `;
 
@@ -5161,34 +5161,34 @@ function initScaryShawarma() {
     let kitchenItems, spookEffects;
 
     const INGREDIENTS = [
-        {name:'Meat', emoji:'🥩', color:'#C62828'},
-        {name:'Bread', emoji:'🫓', color:'#D7CCC8'},
-        {name:'Lettuce', emoji:'🥬', color:'#4CAF50'},
-        {name:'Tomato', emoji:'🍅', color:'#f44336'},
-        {name:'Onion', emoji:'🧅', color:'#E1BEE7'},
-        {name:'Sauce', emoji:'🫙', color:'#FF8F00'},
-        {name:'Cheese', emoji:'🧀', color:'#FFC107'},
-        {name:'Pepper', emoji:'🌶️', color:'#D32F2F'}
+        {name:'Meat', emoji:'ðŸ¥©', color:'#C62828'},
+        {name:'Bread', emoji:'ðŸ«“', color:'#D7CCC8'},
+        {name:'Lettuce', emoji:'ðŸ¥¬', color:'#4CAF50'},
+        {name:'Tomato', emoji:'ðŸ…', color:'#f44336'},
+        {name:'Onion', emoji:'ðŸ§…', color:'#E1BEE7'},
+        {name:'Sauce', emoji:'ðŸ«™', color:'#FF8F00'},
+        {name:'Cheese', emoji:'ðŸ§€', color:'#FFC107'},
+        {name:'Pepper', emoji:'ðŸŒ¶ï¸', color:'#D32F2F'}
     ];
 
     const HAUNTED = [
-        {name:'Ghost Pepper', emoji:'👻🌶️', speed:2, damage:15},
-        {name:'Zombie Meat', emoji:'🧟🥩', speed:1.5, damage:20},
-        {name:'Evil Tomato', emoji:'😈🍅', speed:2.5, damage:10},
-        {name:'Cursed Onion', emoji:'💀🧅', speed:1.8, damage:25},
-        {name:'Demon Cheese', emoji:'🔥🧀', speed:3, damage:12},
-        {name:'Witch Sauce', emoji:'🧙‍♀️🫙', speed:2.2, damage:18}
+        {name:'Ghost Pepper', emoji:'ðŸ‘»ðŸŒ¶ï¸', speed:2, damage:15},
+        {name:'Zombie Meat', emoji:'ðŸ§ŸðŸ¥©', speed:1.5, damage:20},
+        {name:'Evil Tomato', emoji:'ðŸ˜ˆðŸ…', speed:2.5, damage:10},
+        {name:'Cursed Onion', emoji:'ðŸ’€ðŸ§…', speed:1.8, damage:25},
+        {name:'Demon Cheese', emoji:'ðŸ”¥ðŸ§€', speed:3, damage:12},
+        {name:'Witch Sauce', emoji:'ðŸ§™â€â™€ï¸ðŸ«™', speed:2.2, damage:18}
     ];
 
     const SCARY_MSGS = [
-        'THE SHAWARMA DEMANDS A SACRIFICE! 🌯💀',
-        'WHO TURNED OFF THE LIGHTS?! 😱',
-        'The meat... it MOVED! 🥩👀',
-        'Something is watching from the fridge... 🧊👁️',
-        'The sauce is ALIVE! 🫙😈',
-        'DO NOT OPEN THE OVEN! 🔥💀',
-        'The lettuce whispers your name... 🥬🫣',
-        'BEHIND YOU! ...just kidding 😂'
+        'THE SHAWARMA DEMANDS A SACRIFICE! ðŸŒ¯ðŸ’€',
+        'WHO TURNED OFF THE LIGHTS?! ðŸ˜±',
+        'The meat... it MOVED! ðŸ¥©ðŸ‘€',
+        'Something is watching from the fridge... ðŸ§ŠðŸ‘ï¸',
+        'The sauce is ALIVE! ðŸ«™ðŸ˜ˆ',
+        'DO NOT OPEN THE OVEN! ðŸ”¥ðŸ’€',
+        'The lettuce whispers your name... ðŸ¥¬ðŸ«£',
+        'BEHIND YOU! ...just kidding ðŸ˜‚'
     ];
 
     function reset() {
@@ -5249,12 +5249,12 @@ function initScaryShawarma() {
             if (timer <= 0) {
                 clearInterval(timerInterval); timerInterval = null;
                 running = false;
-                showGameOver('Time\'s up! Kitchen closed! 🌯💀', score, 'scaryshawarma', ()=>{reset();});
+                showGameOver('Time\'s up! Kitchen closed! ðŸŒ¯ðŸ’€', score, 'scaryshawarma', ()=>{reset();});
             }
         }, 1000);
 
         running = true;
-        showMsg('🌯 Night ' + level + ': Make a shawarma! Collect: ' + recipe.map(r=>r.emoji).join(' '));
+        showMsg('ðŸŒ¯ Night ' + level + ': Make a shawarma! Collect: ' + recipe.map(r=>r.emoji).join(' '));
     }
 
     function showMsg(t) { msgText = t; msgTimer = 120; }
@@ -5282,7 +5282,7 @@ function initScaryShawarma() {
                     health = Math.min(100, health + 10);
 
                     spookEffects.push({type:'shawarma', timer:60});
-                    showMsg('🌯 SHAWARMA COMPLETE! +' + (100 + level*20) + ' points! 🎉');
+                    showMsg('ðŸŒ¯ SHAWARMA COMPLETE! +' + (100 + level*20) + ' points! ðŸŽ‰');
 
                     // Next level after delay
                     setTimeout(() => {
@@ -5339,7 +5339,7 @@ function initScaryShawarma() {
             health = 0;
             running = false;
             clearInterval(timerInterval);
-            showGameOver('The haunted food got you! 👻🌯', score, 'scaryshawarma', ()=>{reset();});
+            showGameOver('The haunted food got you! ðŸ‘»ðŸŒ¯', score, 'scaryshawarma', ()=>{reset();});
             return;
         }
 
@@ -5419,7 +5419,7 @@ function initScaryShawarma() {
         ctx.font = '28px serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('🧑‍🍳', player.x, player.y);
+        ctx.fillText('ðŸ§‘â€ðŸ³', player.x, player.y);
         // Glow
         ctx.beginPath();
         ctx.arc(player.x, player.y, 20, 0, Math.PI*2);
@@ -5437,7 +5437,7 @@ function initScaryShawarma() {
                 ctx.font = `${60 + (60 - e.timer)}px serif`;
                 ctx.globalAlpha = e.timer / 60;
                 ctx.textAlign = 'center';
-                ctx.fillText('🌯', W/2, H/2);
+                ctx.fillText('ðŸŒ¯', W/2, H/2);
                 ctx.globalAlpha = 1;
             }
             if (e.type === 'msg') {
@@ -5463,11 +5463,11 @@ function initScaryShawarma() {
         ctx.fillStyle = '#FF6F00';
         ctx.fillText('Night ' + level, 6, 4);
         ctx.fillStyle = '#ffaa00';
-        ctx.fillText('🌯x' + shawarmasMade, 6, 18);
+        ctx.fillText('ðŸŒ¯x' + shawarmasMade, 6, 18);
 
         ctx.textAlign = 'center';
         ctx.fillStyle = timer <= 10 ? '#ff4444' : '#00d4ff';
-        ctx.fillText('⏱ ' + timer + 's', W/2, 4);
+        ctx.fillText('â± ' + timer + 's', W/2, 4);
 
         // Health bar
         ctx.fillStyle = '#333';
@@ -5485,7 +5485,7 @@ function initScaryShawarma() {
         ctx.textAlign = 'right';
         const recipeStr = 'Need: ' + recipe.map(r => {
             const have = collectedIngredients.some(c => c.name === r.name);
-            return (have ? '✅' : '⬜') + r.emoji;
+            return (have ? 'âœ…' : 'â¬œ') + r.emoji;
         }).join(' ');
         ctx.fillText(recipeStr, W-6, 18);
 
@@ -5536,13 +5536,13 @@ function initScaryShawarma() {
     ctx.fillStyle = '#FF6F00';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🌯 Scary Shawarma', W/2, H/2-40);
+    ctx.fillText('ðŸŒ¯ Scary Shawarma', W/2, H/2-40);
     ctx.font = '40px serif';
-    ctx.fillText('🧑‍🍳👻🌯', W/2, H/2+10);
+    ctx.fillText('ðŸ§‘â€ðŸ³ðŸ‘»ðŸŒ¯', W/2, H/2+10);
     ctx.font = '11px Rajdhani';
     ctx.fillStyle = '#888';
     ctx.fillText('Cook shawarmas in a haunted kitchen!', W/2, H/2+50);
-    ctx.fillText('Avoid the cursed ingredients! 😱', W/2, H/2+65);
+    ctx.fillText('Avoid the cursed ingredients! ðŸ˜±', W/2, H/2+65);
 
     gameScoreDisplay.textContent = 'Best: ' + getHigh('scaryshawarma');
 
@@ -5554,298 +5554,571 @@ function initScaryShawarma() {
     };
 }
 
-// ==================== RED LIGHT GREEN LIGHT ====================
+
+// ==================== 21. RED LIGHT GREEN LIGHT ====================
 function initRedGreenLight() {
-    gameTitle.textContent = '🚦 Red Light Green Light';
-    const best = getHigh('redgreenlight');
-    gameScoreDisplay.textContent = best ? 'Best: ' + best : '';
+    gameTitle.textContent = 'ðŸš¦ Red Light Green Light';
 
-    // Audio context for sounds
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    const audioCtx = new AudioCtx();
-    function playTone(freq, dur, type) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type || 'square';
-        osc.frequency.value = freq;
-        gain.gain.value = 0.15;
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-        osc.stop(audioCtx.currentTime + dur);
-    }
-    function greenBeep() { playTone(880, 0.15, 'sine'); }
-    function redBuzz() { playTone(220, 0.3, 'sawtooth'); }
-    function winSound() { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.2, 'sine'), i*150)); }
-    function loseSound() { playTone(150, 0.5, 'sawtooth'); }
+    const canvas = document.createElement('canvas');
+    canvas.width = 360;
+    canvas.height = 500;
+    canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #00ff88;border-radius:12px;background:#1a1a2e;touch-action:none;';
 
-    let difficulty = 'medium';
-    let running = false;
-    let gameOver = false;
-    let isGreen = false;
-    let playerPos = 0; // 0 to 100
-    let isMoving = false;
-    let moveInterval = null;
-    let lightTimer = null;
-    let countdownTimer = null;
-    let timeLeft = 45;
-    let caughtGrace = 0;
-    let frameId = null;
-
-    const SETTINGS = {
-        easy:   { greenMin: 3000, greenMax: 5000, redMin: 2000, redMax: 3500, speed: 1.2, grace: 300, time: 55 },
-        medium: { greenMin: 2000, greenMax: 4000, redMin: 1500, redMax: 3000, speed: 0.8, grace: 150, time: 45 },
-        hard:   { greenMin: 1200, greenMax: 2500, redMin: 1500, redMax: 3000, speed: 0.5, grace: 50, time: 35 }
-    };
-
-    gameArea.innerHTML = `
-        <div id="rgl-wrap" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;background:#1a1a2e;border-radius:12px;">
-            <div id="rgl-menu" style="text-align:center;z-index:10;">
-                <div style="font-size:72px;margin-bottom:10px;">🚦</div>
-                <h2 style="color:#fff;font-family:Orbitron,sans-serif;font-size:28px;margin-bottom:20px;">Red Light Green Light</h2>
-                <p style="color:#aaa;margin-bottom:20px;font-size:14px;">Tap RUN during green light. STOP during red light!</p>
-                <div style="margin-bottom:20px;">
-                    <button class="rgl-diff" data-d="easy" style="padding:8px 18px;margin:4px;border:2px solid #00ff88;background:transparent;color:#00ff88;border-radius:8px;cursor:pointer;font-family:Rajdhani,sans-serif;font-size:16px;">Easy</button>
-                    <button class="rgl-diff active" data-d="medium" style="padding:8px 18px;margin:4px;border:2px solid #00d4ff;background:#00d4ff;color:#000;border-radius:8px;cursor:pointer;font-family:Rajdhani,sans-serif;font-size:16px;font-weight:700;">Medium</button>
-                    <button class="rgl-diff" data-d="hard" style="padding:8px 18px;margin:4px;border:2px solid #ff4444;background:transparent;color:#ff4444;border-radius:8px;cursor:pointer;font-family:Rajdhani,sans-serif;font-size:16px;">Hard</button>
-                </div>
-                <button id="rgl-start" style="padding:14px 40px;background:linear-gradient(135deg,#00ff88,#00d4ff);color:#000;border:none;border-radius:12px;font-size:22px;font-weight:700;cursor:pointer;font-family:Orbitron,sans-serif;">▶ START</button>
-            </div>
-            <div id="rgl-game" style="display:none;width:100%;height:100%;position:relative;">
-                <div id="rgl-sky" style="position:absolute;top:0;left:0;width:100%;height:100%;transition:background 0.3s;background:#1a1a2e;"></div>
-                <div id="rgl-light-text" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);font-family:Orbitron,sans-serif;font-size:28px;font-weight:900;z-index:5;text-shadow:0 0 20px currentColor;"></div>
-                <div id="rgl-timer" style="position:absolute;top:12px;right:16px;font-family:Orbitron,sans-serif;font-size:20px;color:#fff;z-index:5;"></div>
-                <div id="rgl-doll" style="position:absolute;top:50px;left:50%;transform:translateX(-50%);font-size:50px;z-index:3;transition:transform 0.3s;">🤖</div>
-                <div id="rgl-finish" style="position:absolute;top:80px;left:10%;width:80%;height:4px;background:repeating-linear-gradient(90deg,#fff 0,#fff 10px,#000 10px,#000 20px);z-index:2;"></div>
-                <div id="rgl-progress-wrap" style="position:absolute;bottom:60px;left:10%;width:80%;height:14px;background:#333;border-radius:7px;z-index:5;overflow:hidden;">
-                    <div id="rgl-progress-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#00ff88,#00d4ff);border-radius:7px;transition:width 0.1s;"></div>
-                </div>
-                <div id="rgl-player" style="position:absolute;bottom:90px;left:50%;transform:translateX(-50%);font-size:40px;z-index:3;transition:bottom 0.1s;">🏃</div>
-                <button id="rgl-run-btn" style="display:none;position:absolute;bottom:8px;left:50%;transform:translateX(-50%);padding:16px 50px;background:#00ff88;color:#000;border:none;border-radius:14px;font-size:24px;font-weight:900;font-family:Orbitron,sans-serif;cursor:pointer;z-index:10;user-select:none;touch-action:manipulation;">🏃 RUN!</button>
-            </div>
-            <div id="rgl-result" style="display:none;text-align:center;z-index:10;">
-                <div id="rgl-result-icon" style="font-size:80px;margin-bottom:10px;"></div>
-                <h2 id="rgl-result-title" style="color:#fff;font-family:Orbitron,sans-serif;font-size:28px;margin-bottom:10px;"></h2>
-                <p id="rgl-result-msg" style="color:#aaa;font-size:16px;margin-bottom:20px;"></p>
-                <button id="rgl-retry" style="padding:14px 40px;background:linear-gradient(135deg,#00ff88,#00d4ff);color:#000;border:none;border-radius:12px;font-size:20px;font-weight:700;cursor:pointer;font-family:Orbitron,sans-serif;">🔄 RETRY</button>
-            </div>
-        </div>
+    const diffDiv = document.createElement('div');
+    diffDiv.style.cssText = 'text-align:center;margin:10px 0;';
+    diffDiv.innerHTML = `
+        <span style="color:#aaa;font-family:Rajdhani;font-size:0.9rem;">Difficulty: </span>
+        <button id="rgl-easy" class="game-btn" style="padding:6px 14px;font-size:0.8rem;margin:0 3px;">Easy</button>
+        <button id="rgl-med" class="game-btn" style="padding:6px 14px;font-size:0.8rem;margin:0 3px;">Medium</button>
+        <button id="rgl-hard" class="game-btn" style="padding:6px 14px;font-size:0.8rem;margin:0 3px;">Hard</button>
     `;
 
-    const wrap = document.getElementById('rgl-wrap');
-    const menu = document.getElementById('rgl-menu');
-    const game = document.getElementById('rgl-game');
-    const result = document.getElementById('rgl-result');
-    const sky = document.getElementById('rgl-sky');
-    const lightText = document.getElementById('rgl-light-text');
-    const timerEl = document.getElementById('rgl-timer');
-    const doll = document.getElementById('rgl-doll');
-    const player = document.getElementById('rgl-player');
-    const progressBar = document.getElementById('rgl-progress-bar');
-    const runBtn = document.getElementById('rgl-run-btn');
+    const startBtn = document.createElement('button');
+    startBtn.textContent = 'â–¶ Start Running!';
+    startBtn.style.cssText = 'display:block;margin:10px auto;padding:12px 30px;font-size:1.1rem;background:linear-gradient(135deg,#00ff88,#00d4ff);border:none;border-radius:8px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;color:#000;';
 
-    // Difficulty buttons
-    document.querySelectorAll('.rgl-diff').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.rgl-diff').forEach(b => {
-                b.style.background = 'transparent';
-                b.style.color = b.dataset.d === 'easy' ? '#00ff88' : b.dataset.d === 'medium' ? '#00d4ff' : '#ff4444';
-                b.style.fontWeight = '400';
-            });
-            btn.style.background = btn.style.borderColor;
-            btn.style.color = '#000';
-            btn.style.fontWeight = '700';
-            difficulty = btn.dataset.d;
-        });
-    });
+    const runBtn = document.createElement('button');
+    runBtn.textContent = 'ðŸƒ TAP TO RUN!';
+    runBtn.style.cssText = 'display:none;margin:10px auto;padding:20px 50px;font-size:1.3rem;background:linear-gradient(135deg,#00ff88,#4CAF50);border:none;border-radius:12px;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold;color:#000;user-select:none;-webkit-user-select:none;touch-action:manipulation;';
 
-    document.getElementById('rgl-start').addEventListener('click', startGame);
-    document.getElementById('rgl-retry').addEventListener('click', () => {
-        result.style.display = 'none';
-        menu.style.display = 'block';
-    });
+    const info = document.createElement('div');
+    info.style.cssText = 'text-align:center;color:#555;font-size:0.7rem;margin-top:6px;';
+    info.textContent = 'Tap RUN during green light. STOP during red light or you\'re OUT!';
+
+    gameArea.appendChild(canvas);
+    gameArea.appendChild(diffDiv);
+    gameArea.appendChild(startBtn);
+    gameArea.appendChild(runBtn);
+    gameArea.appendChild(info);
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    // Audio context for sound effects
+    let audioCtx = null;
+    function initAudio() {
+        if (!audioCtx) {
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+        }
+    }
+    function playTone(freq, duration, type) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = type || 'square';
+            osc.frequency.value = freq;
+            gain.gain.value = 0.15;
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch(e) {}
+    }
+    function greenBeep() { playTone(880, 0.15, 'sine'); }
+    function redBuzz() { playTone(150, 0.4, 'sawtooth'); }
+    function winSound() { playTone(523, 0.1, 'sine'); setTimeout(()=>playTone(659, 0.1, 'sine'), 100); setTimeout(()=>playTone(784, 0.1, 'sine'), 200); setTimeout(()=>playTone(1047, 0.3, 'sine'), 300); }
+    function loseSound() { playTone(300, 0.15, 'sawtooth'); setTimeout(()=>playTone(200, 0.15, 'sawtooth'), 150); setTimeout(()=>playTone(100, 0.4, 'sawtooth'), 300); }
+
+    // Difficulty settings
+    const DIFFICULTY = {
+        easy:   { greenMin: 3000, greenMax: 5000, redMin: 2000, redMax: 3000, graceMs: 400, timer: 60, label: 'Easy' },
+        medium: { greenMin: 2000, greenMax: 4000, redMin: 1500, redMax: 3000, graceMs: 200, timer: 45, label: 'Medium' },
+        hard:   { greenMin: 1500, greenMax: 3000, redMin: 1000, redMax: 2500, graceMs: 80,  timer: 35, label: 'Hard' }
+    };
+    let difficulty = 'medium';
+
+    // Game state
+    let playerY, progress, isGreen, running, caught, won, timer, frameId;
+    let lightSwitchTimeout, timerInterval;
+    let isRunning; // whether the player is currently running (holding button)
+    let dollFacing; // 'away' (green) or 'watching' (red)
+    let dollRotation; // for smooth rotation animation
+    let lightSwitchTime; // when the last switch happened
+    let tintAlpha; // for screen tint effect
+    let confetti; // confetti particles for win
+    let settings;
+    let stepCount; // for animation
+
+    const FINISH_Y = 60;
+    const START_Y = H - 60;
+    const TRACK_LENGTH = START_Y - FINISH_Y;
+
+    function reset() {
+        settings = DIFFICULTY[difficulty];
+        playerY = START_Y;
+        progress = 0;
+        isGreen = false;
+        running = false;
+        caught = false;
+        won = false;
+        timer = settings.timer;
+        isRunning = false;
+        dollFacing = 'away';
+        dollRotation = 0;
+        lightSwitchTime = 0;
+        tintAlpha = 0;
+        confetti = [];
+        stepCount = 0;
+        runBtn.style.display = 'none';
+        startBtn.style.display = 'block';
+    }
 
     function startGame() {
-        const s = SETTINGS[difficulty];
-        timeLeft = s.time;
-        playerPos = 0;
-        isGreen = false;
-        isMoving = false;
-        gameOver = false;
+        initAudio();
+        reset();
         running = true;
-        caughtGrace = 0;
-
-        menu.style.display = 'none';
-        result.style.display = 'none';
-        game.style.display = 'block';
+        startBtn.style.display = 'none';
         runBtn.style.display = 'block';
-        updatePlayer();
-        timerEl.textContent = timeLeft + 's';
+        runBtn.style.background = 'linear-gradient(135deg,#666,#444)';
+        runBtn.textContent = 'â³ Get Ready...';
 
-        // Start countdown
-        countdownTimer = setInterval(() => {
-            timeLeft--;
-            timerEl.textContent = timeLeft + 's';
-            if (timeLeft <= 10) timerEl.style.color = '#ff4444';
-            else timerEl.style.color = '#fff';
-            if (timeLeft <= 0) {
-                endGame(false, 'Time\'s up!');
-            }
-        }, 1000);
+        // Brief countdown, then first green light
+        setTimeout(() => {
+            if (!running) return;
+            switchToGreen();
+            timerInterval = setInterval(() => {
+                if (!running) return;
+                timer--;
+                if (timer <= 0) {
+                    timer = 0;
+                    running = false;
+                    loseSound();
+                    showGameOver('â± Time\'s up!', 0, 'redgreenlight', () => { reset(); drawInitial(); });
+                }
+            }, 1000);
+            frameId = requestAnimationFrame(gameLoop);
+        }, 1500);
 
-        // First light after 1.5s
-        setTimeout(() => { if (running) switchLight(); }, 1500);
-        setLightText('GET READY...', '#ffaa00');
+        drawFrame();
+        frameId = requestAnimationFrame(gameLoop);
     }
 
-    function setLightText(txt, color) {
-        lightText.textContent = txt;
-        lightText.style.color = color;
-    }
-
-    function switchLight() {
+    function switchToGreen() {
         if (!running) return;
-        const s = SETTINGS[difficulty];
-        isGreen = !isGreen;
+        isGreen = true;
+        dollFacing = 'away';
+        lightSwitchTime = Date.now();
+        tintAlpha = 0.25;
+        greenBeep();
+        runBtn.style.background = 'linear-gradient(135deg,#00ff88,#4CAF50)';
+        runBtn.textContent = 'ðŸƒ TAP TO RUN!';
 
+        const dur = settings.greenMin + Math.random() * (settings.greenMax - settings.greenMin);
+        clearTimeout(lightSwitchTimeout);
+        lightSwitchTimeout = setTimeout(() => { if (running) switchToRed(); }, dur);
+    }
+
+    function switchToRed() {
+        if (!running) return;
+        isGreen = false;
+        dollFacing = 'watching';
+        lightSwitchTime = Date.now();
+        tintAlpha = 0.25;
+        redBuzz();
+        runBtn.style.background = 'linear-gradient(135deg,#f44336,#c62828)';
+        runBtn.textContent = 'ðŸ›‘ STOP!';
+
+        const dur = settings.redMin + Math.random() * (settings.redMax - settings.redMin);
+        clearTimeout(lightSwitchTimeout);
+        lightSwitchTimeout = setTimeout(() => { if (running) switchToGreen(); }, dur);
+    }
+
+    function playerRun() {
+        if (!running || caught || won) return;
         if (isGreen) {
-            sky.style.background = 'linear-gradient(180deg, #0a3a0a, #1a1a2e)';
-            setLightText('🟢 GREEN LIGHT!', '#00ff88');
-            runBtn.style.background = '#00ff88';
-            doll.style.transform = 'translateX(-50%) scaleX(1)';
-            greenBeep();
-            caughtGrace = 0;
-            const dur = s.greenMin + Math.random() * (s.greenMax - s.greenMin);
-            lightTimer = setTimeout(() => switchLight(), dur);
+            // Move forward
+            const moveAmount = 3 + Math.random() * 2;
+            playerY -= moveAmount;
+            progress = (START_Y - playerY) / TRACK_LENGTH;
+            stepCount++;
+            if (progress >= 1) {
+                progress = 1;
+                playerY = FINISH_Y;
+                won = true;
+                running = false;
+                clearTimeout(lightSwitchTimeout);
+                clearInterval(timerInterval);
+                winSound();
+
+                // Create confetti
+                for (let i = 0; i < 80; i++) {
+                    confetti.push({
+                        x: W / 2,
+                        y: FINISH_Y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: -Math.random() * 6 - 2,
+                        color: ['#00ff88','#00d4ff','#ff44aa','#ffaa00','#b44aff','#ff6600'][Math.floor(Math.random()*6)],
+                        size: Math.random() * 6 + 2,
+                        rotation: Math.random() * 360,
+                        rotSpeed: (Math.random() - 0.5) * 10
+                    });
+                }
+
+                const score = Math.max(0, timer);
+                setTimeout(() => {
+                    showGameOver('ðŸŽ‰ YOU CROSSED THE LINE!', score, 'redgreenlight', () => { reset(); drawInitial(); });
+                }, 2000);
+            }
         } else {
-            sky.style.background = 'linear-gradient(180deg, #3a0a0a, #1a1a2e)';
-            setLightText('🔴 RED LIGHT!', '#ff4444');
-            runBtn.style.background = '#ff4444';
-            doll.style.transform = 'translateX(-50%) scaleX(-1)';
-            redBuzz();
-            caughtGrace = Date.now();
-            const dur = s.redMin + Math.random() * (s.redMax - s.redMin);
-            lightTimer = setTimeout(() => switchLight(), dur);
+            // Red light! Check grace period
+            const timeSinceSwitch = Date.now() - lightSwitchTime;
+            if (timeSinceSwitch > settings.graceMs) {
+                // CAUGHT!
+                caught = true;
+                running = false;
+                clearTimeout(lightSwitchTimeout);
+                clearInterval(timerInterval);
+                loseSound();
+                setTimeout(() => {
+                    showGameOver('ðŸ”´ CAUGHT! You moved during red light!', 0, 'redgreenlight', () => { reset(); drawInitial(); });
+                }, 1200);
+            }
         }
     }
 
-    function updatePlayer() {
-        const gameH = game.offsetHeight || 400;
-        const minBot = 90;
-        const maxBot = gameH - 100;
-        const bot = minBot + (playerPos / 100) * (maxBot - minBot);
-        player.style.bottom = bot + 'px';
-        progressBar.style.width = playerPos + '%';
+    function gameLoop() {
+        if (!running && !won && !caught) return;
+        drawFrame();
+        // Update confetti
+        for (const c of confetti) {
+            c.x += c.vx;
+            c.vy += 0.15;
+            c.y += c.vy;
+            c.rotation += c.rotSpeed;
+        }
+        // Fade tint
+        if (tintAlpha > 0) tintAlpha -= 0.005;
+        // Animate doll rotation
+        if (dollFacing === 'away') { dollRotation += (0 - dollRotation) * 0.15; }
+        else { dollRotation += (180 - dollRotation) * 0.15; }
+
+        if (running || won || caught) {
+            frameId = requestAnimationFrame(gameLoop);
+        }
     }
 
-    function moveForward() {
-        if (!running || gameOver) return;
-        const s = SETTINGS[difficulty];
+    function drawFrame() {
+        // Background
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, W, H);
+
+        // Screen tint
+        if (tintAlpha > 0) {
+            ctx.fillStyle = isGreen ? `rgba(0,255,100,${tintAlpha})` : `rgba(255,0,0,${tintAlpha})`;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        // Track/field
+        ctx.fillStyle = '#2a2a3e';
+        ctx.fillRect(30, FINISH_Y - 10, W - 60, TRACK_LENGTH + 30);
+        // Lane lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.setLineDash([10, 10]);
+        for (let x = 60; x < W - 60; x += 40) {
+            ctx.beginPath();
+            ctx.moveTo(x, FINISH_Y);
+            ctx.lineTo(x, START_Y + 15);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        // Finish line
+        const blockSize = 10;
+        for (let x = 30; x < W - 30; x += blockSize) {
+            for (let row = 0; row < 2; row++) {
+                const isWhite = ((x / blockSize) + row) % 2 === 0;
+                ctx.fillStyle = isWhite ? '#fff' : '#000';
+                ctx.fillRect(x, FINISH_Y - 10 + row * blockSize, blockSize, blockSize);
+            }
+        }
+
+        // Progress bar (left side)
+        ctx.fillStyle = '#333';
+        ctx.fillRect(8, FINISH_Y, 14, TRACK_LENGTH);
+        const progH = TRACK_LENGTH * progress;
+        const progGrad = ctx.createLinearGradient(8, FINISH_Y + TRACK_LENGTH - progH, 8, FINISH_Y + TRACK_LENGTH);
+        progGrad.addColorStop(0, '#00ff88');
+        progGrad.addColorStop(1, '#00d4ff');
+        ctx.fillStyle = progGrad;
+        ctx.fillRect(8, FINISH_Y + TRACK_LENGTH - progH, 14, progH);
+        ctx.strokeStyle = '#555';
+        ctx.strokeRect(8, FINISH_Y, 14, TRACK_LENGTH);
+
+        // Doll at top
+        const dollX = W / 2;
+        const dollY = FINISH_Y - 30;
+        ctx.save();
+        ctx.translate(dollX, dollY);
+
+        // Doll body
+        if (dollFacing === 'watching' || dollRotation > 90) {
+            // Facing player (red light) â€” angry face
+            ctx.font = '35px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('ðŸ¤–', 0, 0);
+
+            // Red glow around doll
+            ctx.beginPath();
+            ctx.arc(0, 0, 28, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255,0,0,${0.3 + Math.sin(Date.now()/200)*0.2})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Scanning beam
+            if (!caught && running) {
+                ctx.beginPath();
+                ctx.moveTo(-20, 20);
+                ctx.lineTo(-80, START_Y - dollY);
+                ctx.lineTo(80, START_Y - dollY);
+                ctx.lineTo(20, 20);
+                ctx.fillStyle = 'rgba(255,0,0,0.04)';
+                ctx.fill();
+            }
+        } else {
+            // Facing away (green light)
+            ctx.font = '35px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('ðŸ¤–', 0, 0);
+
+            // Green glow
+            ctx.beginPath();
+            ctx.arc(0, 0, 28, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0,255,136,0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // "TURNED AWAY" / "WATCHING" text near doll
+        ctx.font = 'bold 9px Orbitron';
+        ctx.textAlign = 'center';
+        if (dollFacing === 'away') {
+            ctx.fillStyle = '#00ff88';
+            ctx.fillText('â† TURNED AWAY â†’', dollX, dollY + 28);
+        } else {
+            ctx.fillStyle = '#ff4444';
+            ctx.fillText('ðŸ‘ WATCHING YOU ðŸ‘', dollX, dollY + 28);
+        }
+
+        // Player character
+        const pX = W / 2;
+        ctx.font = '28px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        if (caught) {
+            // Caught animation â€” X eyes
+            ctx.fillText('ðŸ˜µ', pX, playerY);
+            // Red flash
+            ctx.fillStyle = 'rgba(255,0,0,0.3)';
+            ctx.fillRect(0, 0, W, H);
+            // "CAUGHT" text
+            ctx.font = 'bold 28px Orbitron';
+            ctx.fillStyle = '#ff4444';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('CAUGHT!', W/2, H/2);
+        } else if (won) {
+            ctx.fillText('ðŸ†', pX, playerY);
+        } else {
+            // Running or standing animation
+            const bobble = (isRunning && isGreen) ? Math.sin(stepCount * 0.5) * 3 : 0;
+            ctx.fillText('ðŸƒ', pX, playerY + bobble);
+        }
+
+        // Other "NPC runners" for ambiance (static positions)
+        const npcs = [
+            { x: W * 0.2, progress: 0.3, emoji: 'ðŸ§‘' },
+            { x: W * 0.35, progress: 0.55, emoji: 'ðŸ‘¦' },
+            { x: W * 0.65, progress: 0.15, emoji: 'ðŸ‘§' },
+            { x: W * 0.8, progress: 0.45, emoji: 'ðŸ§’' }
+        ];
+        ctx.globalAlpha = 0.4;
+        ctx.font = '18px serif';
+        for (const npc of npcs) {
+            const npcY = START_Y - npc.progress * TRACK_LENGTH;
+            ctx.fillText(npc.emoji, npc.x, npcY);
+        }
+        ctx.globalAlpha = 1;
+
+        // Light indicator (top right)
+        const lightX = W - 40;
+        const lightY = 25;
+        // Traffic light housing
+        ctx.fillStyle = '#222';
+        ctx.beginPath();
+        ctx.roundRect(lightX - 18, lightY - 25, 36, 55, 6);
+        ctx.fill();
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Red light
+        ctx.beginPath();
+        ctx.arc(lightX, lightY - 12, 10, 0, Math.PI * 2);
+        ctx.fillStyle = isGreen ? '#440000' : '#ff0000';
+        ctx.fill();
         if (!isGreen) {
-            // Check grace period
-            if (caughtGrace > 0 && (Date.now() - caughtGrace) > s.grace) {
-                endGame(false, 'You moved during RED LIGHT!');
-                return;
-            }
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.shadowBlur = 0;
         }
+        // Green light
+        ctx.beginPath();
+        ctx.arc(lightX, lightY + 14, 10, 0, Math.PI * 2);
+        ctx.fillStyle = isGreen ? '#00ff88' : '#003300';
+        ctx.fill();
         if (isGreen) {
-            playerPos = Math.min(100, playerPos + s.speed);
-            updatePlayer();
-            if (playerPos >= 100) {
-                endGame(true);
-            }
+            ctx.shadowColor = '#00ff88';
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // HUD
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, W, 30);
+
+        ctx.font = 'bold 10px Orbitron';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#00ff88';
+        ctx.fillText(settings.label, 8, 4);
+        ctx.fillStyle = '#aaa';
+        ctx.fillText(Math.floor(progress * 100) + '%', 8, 17);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = timer <= 10 ? '#ff4444' : '#00d4ff';
+        ctx.fillText('â± ' + timer + 's', W/2, 4);
+
+        // Light text
+        ctx.font = 'bold 11px Orbitron';
+        ctx.textAlign = 'center';
+        if (isGreen) {
+            ctx.fillStyle = '#00ff88';
+            ctx.fillText('GREEN LIGHT ðŸŸ¢', W/2, 17);
+        } else {
+            ctx.fillStyle = '#ff4444';
+            ctx.fillText('RED LIGHT ðŸ”´', W/2, 17);
+        }
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#ffaa00';
+        ctx.font = 'bold 10px Orbitron';
+        ctx.fillText('ðŸ† ' + getHigh('redgreenlight'), W - 8, 4);
+
+        // Confetti
+        for (const c of confetti) {
+            ctx.save();
+            ctx.translate(c.x, c.y);
+            ctx.rotate(c.rotation * Math.PI / 180);
+            ctx.fillStyle = c.color;
+            ctx.fillRect(-c.size/2, -c.size/2, c.size, c.size);
+            ctx.restore();
         }
     }
 
-    // Touch/mouse hold for run button
-    let holdInterval = null;
-    function startMoving(e) {
-        if (e) e.preventDefault();
-        if (!running || gameOver) return;
-        isMoving = true;
-        moveForward();
-        holdInterval = setInterval(moveForward, 50);
-    }
-    function stopMoving(e) {
-        if (e) e.preventDefault();
-        isMoving = false;
-        if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
+    function drawInitial() {
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, W, H);
+        ctx.font = 'bold 18px Orbitron';
+        ctx.fillStyle = '#00ff88';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('ðŸš¦ Red Light', W/2, H/2 - 50);
+        ctx.fillText('Green Light', W/2, H/2 - 25);
+        ctx.font = '50px serif';
+        ctx.fillText('ðŸ¤–   ðŸƒ', W/2, H/2 + 25);
+        ctx.font = '11px Rajdhani';
+        ctx.fillStyle = '#888';
+        ctx.fillText('Run when green! Stop when red!', W/2, H/2 + 65);
+        ctx.fillText('Reach the finish line before time runs out!', W/2, H/2 + 82);
     }
 
-    runBtn.addEventListener('mousedown', startMoving);
-    runBtn.addEventListener('mouseup', stopMoving);
-    runBtn.addEventListener('mouseleave', stopMoving);
-    runBtn.addEventListener('touchstart', startMoving, { passive: false });
-    runBtn.addEventListener('touchend', stopMoving, { passive: false });
-    runBtn.addEventListener('touchcancel', stopMoving);
-
-    // Keyboard: hold Space
+    // Event handlers
     function onKey(e) {
-        if (!running) return;
-        if (e.code === 'Space' || e.code === 'ArrowUp') {
+        if (e.key === ' ' || e.key === 'Enter') {
             e.preventDefault();
-            if (e.type === 'keydown' && !isMoving) startMoving();
-            if (e.type === 'keyup') stopMoving();
+            playerRun();
         }
     }
     document.addEventListener('keydown', onKey);
-    document.addEventListener('keyup', onKey);
 
-    function endGame(won, msg) {
-        running = false;
-        gameOver = true;
-        if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
-        if (lightTimer) { clearTimeout(lightTimer); lightTimer = null; }
-        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-
-        setTimeout(() => {
-            game.style.display = 'none';
-            runBtn.style.display = 'none';
-            result.style.display = 'block';
-            sky.style.background = '#1a1a2e';
-
-            if (won) {
-                const score = timeLeft;
-                const isNew = setHigh('redgreenlight', score);
-                winSound();
-                document.getElementById('rgl-result-icon').textContent = '🎉';
-                document.getElementById('rgl-result-title').textContent = 'YOU WIN!';
-                document.getElementById('rgl-result-title').style.color = '#00ff88';
-                document.getElementById('rgl-result-msg').textContent = 'Time left: ' + score + 's' + (isNew ? ' — NEW HIGH SCORE!' : '');
-                gameScoreDisplay.textContent = 'Best: ' + getHigh('redgreenlight');
-                // Confetti
-                for (let i = 0; i < 40; i++) {
-                    const conf = document.createElement('div');
-                    conf.style.cssText = 'position:absolute;width:8px;height:8px;border-radius:50%;z-index:20;pointer-events:none;';
-                    conf.style.background = ['#00ff88','#00d4ff','#ff44aa','#ffaa00','#b44aff'][Math.floor(Math.random()*5)];
-                    conf.style.left = Math.random()*100 + '%';
-                    conf.style.top = '40%';
-                    wrap.appendChild(conf);
-                    const angle = (Math.random()-0.5)*4;
-                    const speed = 2 + Math.random()*4;
-                    let cy = 0, cx = 0, vy = -speed, vx = angle;
-                    (function anim() {
-                        vy += 0.1; cy += vy; cx += vx;
-                        conf.style.transform = 'translate('+cx+'px,'+cy+'px)';
-                        if (cy < 300) requestAnimationFrame(anim);
-                        else conf.remove();
-                    })();
-                }
-            } else {
-                loseSound();
-                document.getElementById('rgl-result-icon').textContent = '💀';
-                document.getElementById('rgl-result-title').textContent = 'CAUGHT!';
-                document.getElementById('rgl-result-title').style.color = '#ff4444';
-                document.getElementById('rgl-result-msg').textContent = msg || 'Game Over';
-            }
-        }, 500);
+    // Run button â€” tap/click
+    let runInterval = null;
+    function startRunning() {
+        isRunning = true;
+        playerRun();
+        if (runInterval) clearInterval(runInterval);
+        runInterval = setInterval(() => {
+            if (running && isRunning) playerRun();
+        }, 80);
     }
+    function stopRunning() {
+        isRunning = false;
+        if (runInterval) { clearInterval(runInterval); runInterval = null; }
+    }
+
+    runBtn.addEventListener('mousedown', (e) => { e.preventDefault(); startRunning(); });
+    runBtn.addEventListener('mouseup', stopRunning);
+    runBtn.addEventListener('mouseleave', stopRunning);
+    runBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRunning(); });
+    runBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRunning(); });
+    runBtn.addEventListener('touchcancel', stopRunning);
+
+    // Canvas tap to run too (mobile)
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); if (running) startRunning(); });
+    canvas.addEventListener('touchend', (e) => { e.preventDefault(); stopRunning(); });
+    canvas.addEventListener('mousedown', (e) => { if (running) startRunning(); });
+    canvas.addEventListener('mouseup', stopRunning);
+
+    // Difficulty buttons
+    const setupDiff = (id, diff) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.onclick = () => {
+                difficulty = diff;
+                document.getElementById('rgl-easy').style.opacity = diff === 'easy' ? '1' : '0.5';
+                document.getElementById('rgl-med').style.opacity = diff === 'medium' ? '1' : '0.5';
+                document.getElementById('rgl-hard').style.opacity = diff === 'hard' ? '1' : '0.5';
+                reset();
+                drawInitial();
+            };
+        }
+    };
+    setupDiff('rgl-easy', 'easy');
+    setupDiff('rgl-med', 'medium');
+    setupDiff('rgl-hard', 'hard');
+
+    // Highlight default difficulty
+    setTimeout(() => {
+        const easyBtn = document.getElementById('rgl-easy');
+        const medBtn = document.getElementById('rgl-med');
+        const hardBtn = document.getElementById('rgl-hard');
+        if (easyBtn) easyBtn.style.opacity = '0.5';
+        if (medBtn) medBtn.style.opacity = '1';
+        if (hardBtn) hardBtn.style.opacity = '0.5';
+    }, 0);
+
+    startBtn.onclick = startGame;
+
+    reset();
+    drawInitial();
+
+    gameScoreDisplay.textContent = 'Best: ' + getHigh('redgreenlight');
 
     gameCleanup = () => {
         running = false;
-        if (holdInterval) clearInterval(holdInterval);
-        if (lightTimer) clearTimeout(lightTimer);
-        if (countdownTimer) clearInterval(countdownTimer);
+        caught = false;
+        won = false;
+        cancelAnimationFrame(frameId);
+        clearTimeout(lightSwitchTimeout);
+        clearInterval(timerInterval);
+        stopRunning();
         document.removeEventListener('keydown', onKey);
-        document.removeEventListener('keyup', onKey);
     };
 }
