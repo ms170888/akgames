@@ -86,6 +86,7 @@ function launchGame(name) {
         case 'gorillatag': initGorillaTag(); break;
         case 'fnaf': initFNAF(); break;
         case 'scaryshawarma': initScaryShawarma(); break;
+        case 'redgreenlight': initRedGreenLight(); break;
 
     }
 }
@@ -5550,5 +5551,301 @@ function initScaryShawarma() {
         cancelAnimationFrame(frameId);
         if (timerInterval) clearInterval(timerInterval);
         document.removeEventListener('keydown', onKey);
+    };
+}
+
+// ==================== RED LIGHT GREEN LIGHT ====================
+function initRedGreenLight() {
+    gameTitle.textContent = '🚦 Red Light Green Light';
+    const best = getHigh('redgreenlight');
+    gameScoreDisplay.textContent = best ? 'Best: ' + best : '';
+
+    // Audio context for sounds
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioCtx();
+    function playTone(freq, dur, type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'square';
+        osc.frequency.value = freq;
+        gain.gain.value = 0.15;
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.stop(audioCtx.currentTime + dur);
+    }
+    function greenBeep() { playTone(880, 0.15, 'sine'); }
+    function redBuzz() { playTone(220, 0.3, 'sawtooth'); }
+    function winSound() { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.2, 'sine'), i*150)); }
+    function loseSound() { playTone(150, 0.5, 'sawtooth'); }
+
+    let difficulty = 'medium';
+    let running = false;
+    let gameOver = false;
+    let isGreen = false;
+    let playerPos = 0; // 0 to 100
+    let isMoving = false;
+    let moveInterval = null;
+    let lightTimer = null;
+    let countdownTimer = null;
+    let timeLeft = 45;
+    let caughtGrace = 0;
+    let frameId = null;
+
+    const SETTINGS = {
+        easy:   { greenMin: 3000, greenMax: 5000, redMin: 2000, redMax: 3500, speed: 1.2, grace: 300, time: 55 },
+        medium: { greenMin: 2000, greenMax: 4000, redMin: 1500, redMax: 3000, speed: 0.8, grace: 150, time: 45 },
+        hard:   { greenMin: 1200, greenMax: 2500, redMin: 1500, redMax: 3000, speed: 0.5, grace: 50, time: 35 }
+    };
+
+    gameArea.innerHTML = `
+        <div id="rgl-wrap" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;background:#1a1a2e;border-radius:12px;">
+            <div id="rgl-menu" style="text-align:center;z-index:10;">
+                <div style="font-size:72px;margin-bottom:10px;">🚦</div>
+                <h2 style="color:#fff;font-family:Orbitron,sans-serif;font-size:28px;margin-bottom:20px;">Red Light Green Light</h2>
+                <p style="color:#aaa;margin-bottom:20px;font-size:14px;">Tap RUN during green light. STOP during red light!</p>
+                <div style="margin-bottom:20px;">
+                    <button class="rgl-diff" data-d="easy" style="padding:8px 18px;margin:4px;border:2px solid #00ff88;background:transparent;color:#00ff88;border-radius:8px;cursor:pointer;font-family:Rajdhani,sans-serif;font-size:16px;">Easy</button>
+                    <button class="rgl-diff active" data-d="medium" style="padding:8px 18px;margin:4px;border:2px solid #00d4ff;background:#00d4ff;color:#000;border-radius:8px;cursor:pointer;font-family:Rajdhani,sans-serif;font-size:16px;font-weight:700;">Medium</button>
+                    <button class="rgl-diff" data-d="hard" style="padding:8px 18px;margin:4px;border:2px solid #ff4444;background:transparent;color:#ff4444;border-radius:8px;cursor:pointer;font-family:Rajdhani,sans-serif;font-size:16px;">Hard</button>
+                </div>
+                <button id="rgl-start" style="padding:14px 40px;background:linear-gradient(135deg,#00ff88,#00d4ff);color:#000;border:none;border-radius:12px;font-size:22px;font-weight:700;cursor:pointer;font-family:Orbitron,sans-serif;">▶ START</button>
+            </div>
+            <div id="rgl-game" style="display:none;width:100%;height:100%;position:relative;">
+                <div id="rgl-sky" style="position:absolute;top:0;left:0;width:100%;height:100%;transition:background 0.3s;background:#1a1a2e;"></div>
+                <div id="rgl-light-text" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);font-family:Orbitron,sans-serif;font-size:28px;font-weight:900;z-index:5;text-shadow:0 0 20px currentColor;"></div>
+                <div id="rgl-timer" style="position:absolute;top:12px;right:16px;font-family:Orbitron,sans-serif;font-size:20px;color:#fff;z-index:5;"></div>
+                <div id="rgl-doll" style="position:absolute;top:50px;left:50%;transform:translateX(-50%);font-size:50px;z-index:3;transition:transform 0.3s;">🤖</div>
+                <div id="rgl-finish" style="position:absolute;top:80px;left:10%;width:80%;height:4px;background:repeating-linear-gradient(90deg,#fff 0,#fff 10px,#000 10px,#000 20px);z-index:2;"></div>
+                <div id="rgl-progress-wrap" style="position:absolute;bottom:60px;left:10%;width:80%;height:14px;background:#333;border-radius:7px;z-index:5;overflow:hidden;">
+                    <div id="rgl-progress-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#00ff88,#00d4ff);border-radius:7px;transition:width 0.1s;"></div>
+                </div>
+                <div id="rgl-player" style="position:absolute;bottom:90px;left:50%;transform:translateX(-50%);font-size:40px;z-index:3;transition:bottom 0.1s;">🏃</div>
+                <button id="rgl-run-btn" style="display:none;position:absolute;bottom:8px;left:50%;transform:translateX(-50%);padding:16px 50px;background:#00ff88;color:#000;border:none;border-radius:14px;font-size:24px;font-weight:900;font-family:Orbitron,sans-serif;cursor:pointer;z-index:10;user-select:none;touch-action:manipulation;">🏃 RUN!</button>
+            </div>
+            <div id="rgl-result" style="display:none;text-align:center;z-index:10;">
+                <div id="rgl-result-icon" style="font-size:80px;margin-bottom:10px;"></div>
+                <h2 id="rgl-result-title" style="color:#fff;font-family:Orbitron,sans-serif;font-size:28px;margin-bottom:10px;"></h2>
+                <p id="rgl-result-msg" style="color:#aaa;font-size:16px;margin-bottom:20px;"></p>
+                <button id="rgl-retry" style="padding:14px 40px;background:linear-gradient(135deg,#00ff88,#00d4ff);color:#000;border:none;border-radius:12px;font-size:20px;font-weight:700;cursor:pointer;font-family:Orbitron,sans-serif;">🔄 RETRY</button>
+            </div>
+        </div>
+    `;
+
+    const wrap = document.getElementById('rgl-wrap');
+    const menu = document.getElementById('rgl-menu');
+    const game = document.getElementById('rgl-game');
+    const result = document.getElementById('rgl-result');
+    const sky = document.getElementById('rgl-sky');
+    const lightText = document.getElementById('rgl-light-text');
+    const timerEl = document.getElementById('rgl-timer');
+    const doll = document.getElementById('rgl-doll');
+    const player = document.getElementById('rgl-player');
+    const progressBar = document.getElementById('rgl-progress-bar');
+    const runBtn = document.getElementById('rgl-run-btn');
+
+    // Difficulty buttons
+    document.querySelectorAll('.rgl-diff').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.rgl-diff').forEach(b => {
+                b.style.background = 'transparent';
+                b.style.color = b.dataset.d === 'easy' ? '#00ff88' : b.dataset.d === 'medium' ? '#00d4ff' : '#ff4444';
+                b.style.fontWeight = '400';
+            });
+            btn.style.background = btn.style.borderColor;
+            btn.style.color = '#000';
+            btn.style.fontWeight = '700';
+            difficulty = btn.dataset.d;
+        });
+    });
+
+    document.getElementById('rgl-start').addEventListener('click', startGame);
+    document.getElementById('rgl-retry').addEventListener('click', () => {
+        result.style.display = 'none';
+        menu.style.display = 'block';
+    });
+
+    function startGame() {
+        const s = SETTINGS[difficulty];
+        timeLeft = s.time;
+        playerPos = 0;
+        isGreen = false;
+        isMoving = false;
+        gameOver = false;
+        running = true;
+        caughtGrace = 0;
+
+        menu.style.display = 'none';
+        result.style.display = 'none';
+        game.style.display = 'block';
+        runBtn.style.display = 'block';
+        updatePlayer();
+        timerEl.textContent = timeLeft + 's';
+
+        // Start countdown
+        countdownTimer = setInterval(() => {
+            timeLeft--;
+            timerEl.textContent = timeLeft + 's';
+            if (timeLeft <= 10) timerEl.style.color = '#ff4444';
+            else timerEl.style.color = '#fff';
+            if (timeLeft <= 0) {
+                endGame(false, 'Time\'s up!');
+            }
+        }, 1000);
+
+        // First light after 1.5s
+        setTimeout(() => { if (running) switchLight(); }, 1500);
+        setLightText('GET READY...', '#ffaa00');
+    }
+
+    function setLightText(txt, color) {
+        lightText.textContent = txt;
+        lightText.style.color = color;
+    }
+
+    function switchLight() {
+        if (!running) return;
+        const s = SETTINGS[difficulty];
+        isGreen = !isGreen;
+
+        if (isGreen) {
+            sky.style.background = 'linear-gradient(180deg, #0a3a0a, #1a1a2e)';
+            setLightText('🟢 GREEN LIGHT!', '#00ff88');
+            runBtn.style.background = '#00ff88';
+            doll.style.transform = 'translateX(-50%) scaleX(1)';
+            greenBeep();
+            caughtGrace = 0;
+            const dur = s.greenMin + Math.random() * (s.greenMax - s.greenMin);
+            lightTimer = setTimeout(() => switchLight(), dur);
+        } else {
+            sky.style.background = 'linear-gradient(180deg, #3a0a0a, #1a1a2e)';
+            setLightText('🔴 RED LIGHT!', '#ff4444');
+            runBtn.style.background = '#ff4444';
+            doll.style.transform = 'translateX(-50%) scaleX(-1)';
+            redBuzz();
+            caughtGrace = Date.now();
+            const dur = s.redMin + Math.random() * (s.redMax - s.redMin);
+            lightTimer = setTimeout(() => switchLight(), dur);
+        }
+    }
+
+    function updatePlayer() {
+        const gameH = game.offsetHeight || 400;
+        const minBot = 90;
+        const maxBot = gameH - 100;
+        const bot = minBot + (playerPos / 100) * (maxBot - minBot);
+        player.style.bottom = bot + 'px';
+        progressBar.style.width = playerPos + '%';
+    }
+
+    function moveForward() {
+        if (!running || gameOver) return;
+        const s = SETTINGS[difficulty];
+        if (!isGreen) {
+            // Check grace period
+            if (caughtGrace > 0 && (Date.now() - caughtGrace) > s.grace) {
+                endGame(false, 'You moved during RED LIGHT!');
+                return;
+            }
+        }
+        if (isGreen) {
+            playerPos = Math.min(100, playerPos + s.speed);
+            updatePlayer();
+            if (playerPos >= 100) {
+                endGame(true);
+            }
+        }
+    }
+
+    // Touch/mouse hold for run button
+    let holdInterval = null;
+    function startMoving(e) {
+        if (e) e.preventDefault();
+        if (!running || gameOver) return;
+        isMoving = true;
+        moveForward();
+        holdInterval = setInterval(moveForward, 50);
+    }
+    function stopMoving(e) {
+        if (e) e.preventDefault();
+        isMoving = false;
+        if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
+    }
+
+    runBtn.addEventListener('mousedown', startMoving);
+    runBtn.addEventListener('mouseup', stopMoving);
+    runBtn.addEventListener('mouseleave', stopMoving);
+    runBtn.addEventListener('touchstart', startMoving, { passive: false });
+    runBtn.addEventListener('touchend', stopMoving, { passive: false });
+    runBtn.addEventListener('touchcancel', stopMoving);
+
+    // Keyboard: hold Space
+    function onKey(e) {
+        if (!running) return;
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+            e.preventDefault();
+            if (e.type === 'keydown' && !isMoving) startMoving();
+            if (e.type === 'keyup') stopMoving();
+        }
+    }
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('keyup', onKey);
+
+    function endGame(won, msg) {
+        running = false;
+        gameOver = true;
+        if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
+        if (lightTimer) { clearTimeout(lightTimer); lightTimer = null; }
+        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+
+        setTimeout(() => {
+            game.style.display = 'none';
+            runBtn.style.display = 'none';
+            result.style.display = 'block';
+            sky.style.background = '#1a1a2e';
+
+            if (won) {
+                const score = timeLeft;
+                const isNew = setHigh('redgreenlight', score);
+                winSound();
+                document.getElementById('rgl-result-icon').textContent = '🎉';
+                document.getElementById('rgl-result-title').textContent = 'YOU WIN!';
+                document.getElementById('rgl-result-title').style.color = '#00ff88';
+                document.getElementById('rgl-result-msg').textContent = 'Time left: ' + score + 's' + (isNew ? ' — NEW HIGH SCORE!' : '');
+                gameScoreDisplay.textContent = 'Best: ' + getHigh('redgreenlight');
+                // Confetti
+                for (let i = 0; i < 40; i++) {
+                    const conf = document.createElement('div');
+                    conf.style.cssText = 'position:absolute;width:8px;height:8px;border-radius:50%;z-index:20;pointer-events:none;';
+                    conf.style.background = ['#00ff88','#00d4ff','#ff44aa','#ffaa00','#b44aff'][Math.floor(Math.random()*5)];
+                    conf.style.left = Math.random()*100 + '%';
+                    conf.style.top = '40%';
+                    wrap.appendChild(conf);
+                    const angle = (Math.random()-0.5)*4;
+                    const speed = 2 + Math.random()*4;
+                    let cy = 0, cx = 0, vy = -speed, vx = angle;
+                    (function anim() {
+                        vy += 0.1; cy += vy; cx += vx;
+                        conf.style.transform = 'translate('+cx+'px,'+cy+'px)';
+                        if (cy < 300) requestAnimationFrame(anim);
+                        else conf.remove();
+                    })();
+                }
+            } else {
+                loseSound();
+                document.getElementById('rgl-result-icon').textContent = '💀';
+                document.getElementById('rgl-result-title').textContent = 'CAUGHT!';
+                document.getElementById('rgl-result-title').style.color = '#ff4444';
+                document.getElementById('rgl-result-msg').textContent = msg || 'Game Over';
+            }
+        }, 500);
+    }
+
+    gameCleanup = () => {
+        running = false;
+        if (holdInterval) clearInterval(holdInterval);
+        if (lightTimer) clearTimeout(lightTimer);
+        if (countdownTimer) clearInterval(countdownTimer);
+        document.removeEventListener('keydown', onKey);
+        document.removeEventListener('keyup', onKey);
     };
 }
