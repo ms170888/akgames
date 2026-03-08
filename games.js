@@ -80,6 +80,7 @@ function launchGame(name) {
         case 'tag': initTag(); break;
         case 'geodash': initGeoDash(); break;
         case 'kingshot': initKingShot(); break;
+        case 'minicraft': initMiniCraft(); break;
 
     }
 }
@@ -3219,5 +3220,393 @@ function initKingShot() {
         canvas.removeEventListener('touchstart', onDown);
         canvas.removeEventListener('touchmove', onMove);
         canvas.removeEventListener('touchend', onUp);
+    };
+}
+
+// ==================== MINICRAFT (Mini Minecraft) ====================
+function initMiniCraft() {
+    gameTitle.textContent = '⛏️ MiniCraft';
+
+    const TILE = 24;
+    const COLS = 16;
+    const ROWS = 14;
+    const W = COLS * TILE;
+    const HH = ROWS * TILE;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = HH;
+    canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #00ff88;border-radius:8px;image-rendering:pixelated;touch-action:none;cursor:crosshair;';
+
+    // Block selector
+    const selector = document.createElement('div');
+    selector.style.cssText = 'display:flex;justify-content:center;gap:6px;margin:10px auto;flex-wrap:wrap;max-width:390px;';
+
+    // Mobile controls
+    const controls = document.createElement('div');
+    controls.style.cssText = 'display:flex;justify-content:center;gap:8px;margin-top:8px;flex-wrap:wrap;';
+    controls.innerHTML = `
+        <div style="display:grid;grid-template-columns:40px 40px 40px;grid-template-rows:40px 40px;gap:3px;">
+            <div></div>
+            <button id="mc-up" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬆</button>
+            <div></div>
+            <button id="mc-left" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬅</button>
+            <button id="mc-down" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬇</button>
+            <button id="mc-right" style="font-size:1.2rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">➡</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;margin-left:20px;">
+            <button id="mc-mine" style="padding:8px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #ff4444;border-radius:8px;color:#ff4444;cursor:pointer;">⛏ Mine</button>
+            <button id="mc-place" style="padding:8px 16px;font-size:0.9rem;background:#1a1a2e;border:2px solid #00ff88;border-radius:8px;color:#00ff88;cursor:pointer;">🧱 Place</button>
+        </div>
+    `;
+
+    const info = document.createElement('div');
+    info.style.cssText = 'text-align:center;color:#666;font-size:0.7rem;margin-top:6px;';
+    info.textContent = 'WASD/Arrows: move | Click: mine/place | 1-7: select block';
+
+    gameArea.appendChild(canvas);
+    gameArea.appendChild(selector);
+    gameArea.appendChild(controls);
+    gameArea.appendChild(info);
+
+    const ctx = canvas.getContext('2d');
+
+    // Block types
+    const BLOCKS = {
+        0: { name: 'Air', color: null },
+        1: { name: 'Dirt', color: '#8B5E3C', dark: '#6B4226', detail: '#7A5230' },
+        2: { name: 'Grass', color: '#4CAF50', dark: '#388E3C', top: '#66BB6A' },
+        3: { name: 'Stone', color: '#9E9E9E', dark: '#757575', detail: '#BDBDBD' },
+        4: { name: 'Wood', color: '#A1887F', dark: '#795548', detail: '#8D6E63' },
+        5: { name: 'Leaves', color: '#2E7D32', dark: '#1B5E20', detail: '#43A047' },
+        6: { name: 'Water', color: '#1565C0', dark: '#0D47A1', detail: '#1976D2' },
+        7: { name: 'Sand', color: '#FDD835', dark: '#F9A825', detail: '#FFEE58' },
+        8: { name: 'Coal', color: '#424242', dark: '#212121', detail: '#616161' },
+        9: { name: 'Gold', color: '#FFD700', dark: '#FFA000', detail: '#FFE082' },
+        10: { name: 'Diamond', color: '#4DD0E1', dark: '#00ACC1', detail: '#80DEEA' },
+        11: { name: 'Bedrock', color: '#333', dark: '#111', detail: '#444' }
+    };
+
+    const PLACEABLE = [1, 2, 3, 4, 5, 7]; // blocks player can place
+
+    let world, playerPos, selectedBlock, inventory, facing, frameId;
+
+    function generateWorld() {
+        world = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+
+        // Ground level
+        const groundLevel = 8;
+
+        for (let x = 0; x < COLS; x++) {
+            // Terrain height variation
+            const height = groundLevel + Math.floor(Math.sin(x * 0.5) * 2);
+
+            for (let y = 0; y < ROWS; y++) {
+                if (y === ROWS - 1) {
+                    world[y][x] = 11; // bedrock
+                } else if (y >= height) {
+                    if (y === height) {
+                        world[y][x] = 2; // grass top
+                    } else if (y < height + 3) {
+                        world[y][x] = 1; // dirt
+                    } else {
+                        world[y][x] = 3; // stone
+                        // Ores
+                        if (Math.random() < 0.08) world[y][x] = 8; // coal
+                        if (y > ROWS - 4 && Math.random() < 0.05) world[y][x] = 9; // gold
+                        if (y > ROWS - 3 && Math.random() < 0.03) world[y][x] = 10; // diamond
+                    }
+                } else {
+                    world[y][x] = 0; // air
+                }
+            }
+
+            // Trees
+            if (Math.random() < 0.15 && world[groundLevel - 1] !== undefined) {
+                const treeH = 3 + Math.floor(Math.random() * 2);
+                const treeBase = height - 1;
+                for (let ty = 0; ty < treeH; ty++) {
+                    const wy = treeBase - ty;
+                    if (wy >= 0 && wy < ROWS) world[wy][x] = 4; // trunk
+                }
+                // Leaves
+                for (let ly = -1; ly <= 1; ly++) {
+                    for (let lx = -1; lx <= 1; lx++) {
+                        const wx = x + lx;
+                        const wy = treeBase - treeH + ly;
+                        if (wx >= 0 && wx < COLS && wy >= 0 && wy < ROWS && world[wy][wx] === 0) {
+                            world[wy][wx] = 5;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Water pools
+        for (let x = 0; x < COLS; x++) {
+            const height = groundLevel + Math.floor(Math.sin(x * 0.5) * 2);
+            if (height > groundLevel + 1) {
+                for (let y = groundLevel; y < height; y++) {
+                    if (world[y][x] === 0) world[y][x] = 6;
+                }
+            }
+        }
+
+        // Find spawn (air above ground)
+        for (let y = 0; y < ROWS; y++) {
+            const mid = Math.floor(COLS / 2);
+            if (world[y][mid] !== 0 && y > 0 && world[y - 1][mid] === 0) {
+                playerPos = { x: mid, y: y - 1 };
+                break;
+            }
+        }
+        if (!playerPos) playerPos = { x: 8, y: 5 };
+    }
+
+    function buildSelector() {
+        selector.innerHTML = '';
+        PLACEABLE.forEach((id, i) => {
+            const b = BLOCKS[id];
+            const btn = document.createElement('button');
+            btn.style.cssText = `width:36px;height:36px;background:${b.color};border:${selectedBlock === id ? '3px solid #00ff88' : '2px solid #555'};border-radius:6px;cursor:pointer;font-size:0.6rem;color:#fff;font-family:Rajdhani,sans-serif;${selectedBlock === id ? 'box-shadow:0 0 10px #00ff88;' : ''}`;
+            btn.textContent = b.name.slice(0, 4);
+            btn.title = b.name + ' (' + (i + 1) + ')';
+            btn.onclick = () => { selectedBlock = id; buildSelector(); };
+            selector.appendChild(btn);
+        });
+        // Inventory display
+        const invDiv = document.createElement('div');
+        invDiv.style.cssText = 'width:100%;text-align:center;margin-top:4px;font-size:0.7rem;color:#aaa;font-family:Rajdhani,sans-serif;';
+        let invText = '';
+        for (const [id, count] of Object.entries(inventory)) {
+            if (count > 0) invText += `${BLOCKS[id].name}: ${count}  `;
+        }
+        invDiv.textContent = invText || 'Mine blocks to collect them!';
+        selector.appendChild(invDiv);
+    }
+
+    function drawBlock(x, y, id) {
+        if (id === 0) return;
+        const b = BLOCKS[id];
+        const px = x * TILE;
+        const py = y * TILE;
+
+        ctx.fillStyle = b.color;
+        ctx.fillRect(px, py, TILE, TILE);
+
+        // Darker edges
+        ctx.fillStyle = b.dark;
+        ctx.fillRect(px, py + TILE - 3, TILE, 3);
+        ctx.fillRect(px + TILE - 3, py, 3, TILE);
+
+        // Top highlight
+        if (b.top) {
+            ctx.fillStyle = b.top;
+            ctx.fillRect(px, py, TILE, 4);
+        }
+
+        // Detail dots for ores
+        if (id === 8 || id === 9 || id === 10) {
+            ctx.fillStyle = b.detail;
+            ctx.fillRect(px + 4, py + 6, 4, 4);
+            ctx.fillRect(px + 14, py + 12, 4, 4);
+            ctx.fillRect(px + 8, py + 16, 3, 3);
+        }
+
+        // Grid line
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(px, py, TILE, TILE);
+    }
+
+    function draw() {
+        // Sky
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, HH);
+        skyGrad.addColorStop(0, '#87CEEB');
+        skyGrad.addColorStop(0.6, '#B0E0E6');
+        skyGrad.addColorStop(1, '#1a1a2e');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, W, HH);
+
+        // Blocks
+        for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) {
+                drawBlock(x, y, world[y][x]);
+            }
+        }
+
+        // Player
+        const px = playerPos.x * TILE;
+        const py = playerPos.y * TILE;
+
+        // Body
+        ctx.fillStyle = '#00BCD4';
+        ctx.fillRect(px + 6, py + 8, 12, 14);
+        // Head
+        ctx.fillStyle = '#FFCCBC';
+        ctx.fillRect(px + 7, py + 1, 10, 8);
+        // Eyes
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(px + 9, py + 3, 3, 3);
+        ctx.fillRect(px + 13, py + 3, 3, 3);
+        ctx.fillStyle = '#333';
+        if (facing === 'left') {
+            ctx.fillRect(px + 9, py + 4, 2, 2);
+            ctx.fillRect(px + 13, py + 4, 2, 2);
+        } else {
+            ctx.fillRect(px + 10, py + 4, 2, 2);
+            ctx.fillRect(px + 14, py + 4, 2, 2);
+        }
+        // Legs
+        ctx.fillStyle = '#5D4037';
+        ctx.fillRect(px + 7, py + 20, 4, 4);
+        ctx.fillRect(px + 13, py + 20, 4, 4);
+
+        // Cursor highlight (block in front of player)
+        const cx = facing === 'left' ? playerPos.x - 1 : playerPos.x + 1;
+        const cy = playerPos.y;
+        if (cx >= 0 && cx < COLS && cy >= 0 && cy < ROWS) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeRect(cx * TILE, cy * TILE, TILE, TILE);
+            ctx.setLineDash([]);
+        }
+    }
+
+    function movePlayer(dx, dy) {
+        if (dx < 0) facing = 'left';
+        if (dx > 0) facing = 'right';
+
+        const nx = playerPos.x + dx;
+        const ny = playerPos.y + dy;
+
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return;
+        if (world[ny][nx] !== 0 && world[ny][nx] !== 6) return; // can walk through water
+
+        playerPos.x = nx;
+        playerPos.y = ny;
+
+        // Gravity: fall if no block below
+        applyGravity();
+        draw();
+        buildSelector();
+    }
+
+    function applyGravity() {
+        while (playerPos.y < ROWS - 1 && world[playerPos.y + 1][playerPos.x] === 0) {
+            playerPos.y++;
+        }
+    }
+
+    function mineBlock() {
+        const tx = facing === 'left' ? playerPos.x - 1 : playerPos.x + 1;
+        const ty = playerPos.y;
+
+        if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) return;
+        const blockId = world[ty][tx];
+        if (blockId === 0 || blockId === 11) return; // can't mine air or bedrock
+
+        // Add to inventory
+        if (!inventory[blockId]) inventory[blockId] = 0;
+        inventory[blockId]++;
+
+        world[ty][tx] = 0;
+        draw();
+        buildSelector();
+    }
+
+    function placeBlock() {
+        const tx = facing === 'left' ? playerPos.x - 1 : playerPos.x + 1;
+        const ty = playerPos.y;
+
+        if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) return;
+        if (world[ty][tx] !== 0) return; // spot taken
+
+        if (!inventory[selectedBlock] || inventory[selectedBlock] <= 0) return;
+
+        world[ty][tx] = selectedBlock;
+        inventory[selectedBlock]--;
+
+        draw();
+        buildSelector();
+    }
+
+    function onKey(e) {
+        switch (e.key) {
+            case 'ArrowLeft': case 'a': case 'A': movePlayer(-1, 0); break;
+            case 'ArrowRight': case 'd': case 'D': movePlayer(1, 0); break;
+            case 'ArrowUp': case 'w': case 'W': movePlayer(0, -1); break;
+            case 'ArrowDown': case 's': case 'S': movePlayer(0, 1); break;
+            case 'q': case 'Q': mineBlock(); break;
+            case 'e': case 'E': placeBlock(); break;
+            case '1': selectedBlock = PLACEABLE[0]; buildSelector(); break;
+            case '2': selectedBlock = PLACEABLE[1]; buildSelector(); break;
+            case '3': selectedBlock = PLACEABLE[2]; buildSelector(); break;
+            case '4': selectedBlock = PLACEABLE[3]; buildSelector(); break;
+            case '5': selectedBlock = PLACEABLE[4]; buildSelector(); break;
+            case '6': selectedBlock = PLACEABLE[5]; buildSelector(); break;
+        }
+    }
+
+    // Click to mine/place
+    canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = Math.floor((e.clientX - rect.left) * (W / rect.width) / TILE);
+        const my = Math.floor((e.clientY - rect.top) * (HH / rect.height) / TILE);
+
+        if (mx < 0 || mx >= COLS || my < 0 || my >= ROWS) return;
+
+        // Update facing
+        if (mx < playerPos.x) facing = 'left';
+        else if (mx > playerPos.x) facing = 'right';
+
+        // If clicking on a block, mine it (if adjacent)
+        const dist = Math.abs(mx - playerPos.x) + Math.abs(my - playerPos.y);
+        if (dist <= 2) {
+            if (world[my][mx] !== 0 && world[my][mx] !== 11) {
+                if (!inventory[world[my][mx]]) inventory[world[my][mx]] = 0;
+                inventory[world[my][mx]]++;
+                world[my][mx] = 0;
+            } else if (world[my][mx] === 0 && inventory[selectedBlock] > 0) {
+                world[my][mx] = selectedBlock;
+                inventory[selectedBlock]--;
+            }
+        }
+
+        draw();
+        buildSelector();
+    });
+
+    // Mobile controls
+    document.addEventListener('keydown', onKey);
+
+    const setupMobileBtn = (id, fn) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', fn);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); });
+        }
+    };
+
+    setupMobileBtn('mc-up', () => movePlayer(0, -1));
+    setupMobileBtn('mc-down', () => movePlayer(0, 1));
+    setupMobileBtn('mc-left', () => movePlayer(-1, 0));
+    setupMobileBtn('mc-right', () => movePlayer(1, 0));
+    setupMobileBtn('mc-mine', mineBlock);
+    setupMobileBtn('mc-place', placeBlock);
+
+    // Init
+    selectedBlock = PLACEABLE[0];
+    inventory = {};
+    facing = 'right';
+    generateWorld();
+    buildSelector();
+    draw();
+
+    gameScoreDisplay.textContent = '';
+
+    gameCleanup = () => {
+        document.removeEventListener('keydown', onKey);
     };
 }
