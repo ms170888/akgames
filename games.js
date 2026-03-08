@@ -7838,7 +7838,7 @@ function initConnect4() {
 
 
 function initChess() {
-    gameTitle.textContent = 'Chess Chess';
+    gameTitle.textContent = 'Chess';
     const best = getHigh('chess');
     gameScoreDisplay.textContent = best ? 'Wins: ' + best : '';
 
@@ -7997,7 +7997,8 @@ function initChess() {
     function resize() {
         var rect = gameArea.getBoundingClientRect();
         W = canvas.width = rect.width;
-        H = canvas.height = rect.height;
+        H = canvas.height = Math.max(rect.height, 500);
+        canvas.style.height = H + 'px';
         var maxBoard = Math.min(W - 20, H - 140);
         boardSize = Math.floor(maxBoard / 8) * 8;
         cellSize = boardSize / 8;
@@ -8548,7 +8549,7 @@ function initChess() {
         ctx.fillStyle = '#e0e0e0';
         ctx.font = 'bold ' + Math.max(28, W * 0.06) + 'px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Chess Chess', W / 2, H * 0.15);
+        ctx.fillText('Chess', W / 2, H * 0.15);
 
         // Subtitle
         ctx.font = Math.max(14, W * 0.03) + 'px Arial';
