@@ -8559,8 +8559,8 @@ function initChess() {
         var btnW = Math.min(180, W * 0.4);
         var btnH = 45;
         var btnX = W / 2 - btnW / 2;
-        var startY = H * 0.32;
-        var gap = 60;
+        var startY = H * 0.28;
+        var gap = Math.min(55, H * 0.1);
         var diffs = ['easy', 'medium', 'hard'];
         var diffLabels = ['Easy', 'Medium', 'Hard'];
         var diffColors = ['#4CAF50', '#FF9800', '#f44336'];
@@ -8582,7 +8582,7 @@ function initChess() {
         }
 
         // START button
-        var startBtnY = startY + 3 * gap + 10;
+        var startBtnY = startY + 3 * gap + 5;
         ctx.fillStyle = '#4a90d9';
         ctx.beginPath();
         ctx.roundRect(btnX, startBtnY, btnW, 50, 10);
