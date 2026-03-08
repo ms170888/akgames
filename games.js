@@ -82,6 +82,7 @@ function launchGame(name) {
         case 'kingshot': initKingShot(); break;
         case 'minicraft': initMiniCraft(); break;
         case 'forest99': initForest99(); break;
+        case 'brookhaven': initBrookhaven(); break;
 
     }
 }
@@ -4070,4 +4071,256 @@ function initForest99() {
         cancelAnimationFrame(frameId);
         document.removeEventListener('keydown', onKey);
     };
+}
+
+// ==================== BROOKHAVEN ====================
+function initBrookhaven() {
+    gameTitle.textContent = '🏘️ Brookhaven';
+
+    const TILE = 20;
+    const VIEW_W = 18;
+    const VIEW_H = 16;
+    const W = VIEW_W * TILE;
+    const HH = VIEW_H * TILE;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = HH;
+    canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #00d4ff;border-radius:8px;touch-action:none;';
+
+    const statusBar = document.createElement('div');
+    statusBar.id = 'bh-status';
+    statusBar.style.cssText = 'text-align:center;color:#aaa;font-size:0.8rem;margin:6px auto;max-width:370px;font-family:Rajdhani,sans-serif;';
+
+    const dpad = document.createElement('div');
+    dpad.style.cssText = 'display:grid;grid-template-columns:42px 42px 42px;grid-template-rows:42px 42px;gap:3px;justify-content:center;margin-top:8px;';
+    dpad.innerHTML = `
+        <div></div>
+        <button id="bh-up" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬆</button>
+        <div></div>
+        <button id="bh-left" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬅</button>
+        <button id="bh-action" style="font-size:0.7rem;background:#1a1a2e;border:2px solid #ffaa00;border-radius:8px;color:#ffaa00;cursor:pointer;">Enter</button>
+        <button id="bh-right" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">➡</button>
+        <div></div>
+        <button id="bh-down" style="font-size:1.1rem;background:#1a1a2e;border:2px solid #00d4ff;border-radius:8px;color:#00d4ff;cursor:pointer;">⬇</button>
+        <div></div>
+    `;
+
+    const info = document.createElement('div');
+    info.style.cssText = 'text-align:center;color:#555;font-size:0.7rem;margin-top:4px;';
+    info.textContent = 'WASD: move | E: enter buildings/interact | Explore the town!';
+
+    gameArea.appendChild(canvas);
+    gameArea.appendChild(statusBar);
+    gameArea.appendChild(dpad);
+    gameArea.appendChild(info);
+
+    const ctx = canvas.getContext('2d');
+
+    const GRASS = 0, ROAD = 1, SIDE = 2, WATER = 3, TTREE = 4;
+    const BH1 = 10, BH2 = 11, BH3 = 12, BSHOP = 13, BPOLICE = 14, BHOSPITAL = 15, BSCHOOL = 16;
+    const BENCH = 17, BCAR = 18, BFLOWER = 20;
+
+    const MAP_W = 40, MAP_H = 30;
+    const map = Array.from({length: MAP_H}, () => Array(MAP_W).fill(GRASS));
+    const buildings = [];
+
+    function buildTown() {
+        for (let x = 0; x < MAP_W; x++) {
+            for (let dy = 0; dy < 2; dy++) { map[8+dy][x] = ROAD; map[18+dy][x] = ROAD; }
+        }
+        for (let y = 0; y < MAP_H; y++) {
+            for (let dx = 0; dx < 2; dx++) { map[y][12+dx] = ROAD; map[y][26+dx] = ROAD; }
+        }
+        for (let x = 0; x < MAP_W; x++) {
+            [7,10,17,20].forEach(r => { if (map[r][x] !== ROAD) map[r][x] = SIDE; });
+        }
+        for (let y = 0; y < MAP_H; y++) {
+            [11,14,25,28].forEach(c => { if (map[y][c] !== ROAD && map[y][c] !== SIDE) map[y][c] = SIDE; });
+        }
+
+        function placeB(x,y,type,style) {
+            for (let dy=0;dy<2;dy++) for (let dx=0;dx<3;dx++) if(y+dy<MAP_H&&x+dx<MAP_W) map[y+dy][x+dx]=type;
+            const names = {[BH1]:'House',[BH2]:'House',[BH3]:'House',[BSHOP]:'Shop',[BPOLICE]:'Police Station',[BHOSPITAL]:'Hospital',[BSCHOOL]:'School'};
+            buildings.push({x,y,w:3,h:2,type,style,name:(names[type]||'Building')});
+        }
+
+        placeB(2,2,BH1,'blue'); placeB(6,2,BH2,'red'); placeB(2,5,BH3,'yellow'); placeB(6,5,BH1,'green');
+        placeB(15,2,BSHOP,'shop'); placeB(19,2,BSHOP,'shop'); placeB(15,5,BPOLICE,'police'); placeB(19,5,BHOSPITAL,'hospital');
+        placeB(2,12,BSCHOOL,'school'); placeB(6,12,BSCHOOL,'school');
+        placeB(29,2,BH1,'purple'); placeB(33,2,BH2,'orange'); placeB(29,12,BH3,'pink'); placeB(33,12,BH1,'cyan');
+        placeB(29,22,BH2,'white'); placeB(33,22,BH3,'lime');
+
+        for (let x=15;x<24;x++) for (let y=22;y<28;y++) {
+            if (Math.random()<0.15) map[y][x]=TTREE;
+            else if (Math.random()<0.1) map[y][x]=BFLOWER;
+            else if (Math.random()<0.05) map[y][x]=BENCH;
+        }
+
+        for (let x=2;x<9;x++) for (let y=22;y<27;y++) {
+            const dx=x-5.5, dy=y-24.5;
+            if(dx*dx/12+dy*dy/6<1) map[y][x]=WATER;
+        }
+
+        for (let x=0;x<MAP_W;x++){map[0][x]=TTREE;map[MAP_H-1][x]=TTREE;}
+        for (let y=0;y<MAP_H;y++){map[y][0]=TTREE;map[y][MAP_W-1]=TTREE;}
+        for (let y=1;y<MAP_H-1;y++) for(let x=1;x<MAP_W-1;x++){
+            if(map[y][x]===GRASS&&Math.random()<0.04) map[y][x]=TTREE;
+            if(map[y][x]===GRASS&&Math.random()<0.03) map[y][x]=BFLOWER;
+        }
+        map[8][5]=BCAR; map[9][16]=BCAR; map[18][30]=BCAR; map[19][22]=BCAR;
+    }
+
+    let npcs = [
+        {emoji:'👩',name:'Sarah',x:4,y:7,sayings:['Hi! Welcome to Brookhaven!','Nice weather!','Visit the park!'],moveTimer:0},
+        {emoji:'👮',name:'Officer Dan',x:16,y:7,sayings:['Stay safe, citizen!','No running!','Peaceful day.'],moveTimer:0},
+        {emoji:'🧑‍⚕️',name:'Dr. Kim',x:20,y:7,sayings:['Stay healthy!','Drink water!','An apple a day!'],moveTimer:0},
+        {emoji:'👨‍🏫',name:'Mr. Lee',x:3,y:14,sayings:['School at 8 AM!','Homework done?','Reading is fun!'],moveTimer:0},
+        {emoji:'🧑‍🍳',name:'Chef Marco',x:16,y:4,sayings:['Special: pizza! 🍕','Want a cookie? 🍪','Come eat!'],moveTimer:0},
+        {emoji:'👧',name:'Emma',x:30,y:7,sayings:['Wanna play? 😊','I love this town!','Be friends!'],moveTimer:0},
+        {emoji:'👴',name:'Grandpa Joe',x:6,y:24,sayings:['Lake is beautiful...','All fields once.','Catch fish?'],moveTimer:0},
+        {emoji:'🐕',name:'Buddy',x:18,y:25,sayings:['Woof! 🐾','*wags tail*','Woof woof! 🦴'],moveTimer:0},
+    ];
+
+    let player, money, currentLocation, msgText, msgTimer, timeOfDay, dayTimer, bhInventory;
+
+    function resetGame() {
+        buildTown();
+        player={x:10,y:10,emoji:'🧑'}; money=100; currentLocation='Outside';
+        msgText=''; msgTimer=0; timeOfDay=0; dayTimer=0;
+        bhInventory=['🔑 House Key'];
+        draw();
+    }
+
+    function showMsg(t,d){msgText=t;msgTimer=d||120;}
+
+    function movePlayer(dx,dy){
+        const nx=player.x+dx, ny=player.y+dy;
+        if(nx<0||nx>=MAP_W||ny<0||ny>=MAP_H) return;
+        const tile=map[ny][nx];
+        if(tile===TTREE||tile===WATER) return;
+        if(tile>=10&&tile<=16){
+            const b=buildings.find(b=>nx>=b.x&&nx<b.x+b.w&&ny>=b.y&&ny<b.y+b.h);
+            if(b) showMsg('🏠 '+b.name+' — Press E to enter!');
+            return;
+        }
+        player.x=nx; player.y=ny;
+        currentLocation=tile===ROAD?'Road':(tile===SIDE?'Sidewalk':'Outside');
+        for(const npc of npcs){
+            if(Math.abs(npc.x-player.x)<=1&&Math.abs(npc.y-player.y)<=1)
+                showMsg(npc.emoji+' '+npc.name+': "'+npc.sayings[Math.floor(Math.random()*npc.sayings.length)]+'"');
+        }
+        draw();
+    }
+
+    function interact(){
+        for(const b of buildings){
+            if(Math.abs(player.x-(b.x+1))+Math.abs(player.y-(b.y+2))<=2){enterBuilding(b);return;}
+        }
+        for(const npc of npcs){
+            if(Math.abs(npc.x-player.x)<=1&&Math.abs(npc.y-player.y)<=1){
+                showMsg(npc.emoji+' '+npc.name+': "'+npc.sayings[Math.floor(Math.random()*npc.sayings.length)]+'"');return;
+            }
+        }
+        if(map[player.y][player.x]===BCAR){showMsg('🚗 Vroom vroom! 📯');return;}
+        showMsg('Nothing here.');
+    }
+
+    function enterBuilding(b){
+        if(b.type===BSHOP){
+            if(money>=10){money-=10;const items=['🍕 Pizza','🍦 Ice Cream','🧸 Teddy Bear','📱 Toy Phone','🎮 Gameboy','👟 Sneakers'];
+                const item=items[Math.floor(Math.random()*items.length)];bhInventory.push(item);
+                showMsg('🛒 Bought '+item+' for $10! ($'+money+' left)',150);
+            }else showMsg('💸 Not enough! You have $'+money);
+        }else if(b.type===BPOLICE){money+=20;showMsg('👮 "Thanks for visiting! Here\'s $20!" 💰');}
+        else if(b.type===BHOSPITAL){showMsg('🏥 "Have a lollipop! 🍭"');bhInventory.push('🍭 Lollipop');}
+        else if(b.type===BSCHOOL){
+            const facts=['The sun is a star! ⭐','Octopuses have 3 hearts! 🐙','Honey never spoils! 🍯','Bananas are berries! 🍌','Lightning is 5x hotter than the sun! ⚡'];
+            showMsg('📚 Learned: '+facts[Math.floor(Math.random()*facts.length)],150);
+        }else showMsg('🏠 Visited '+b.name+'! Cozy inside. 🛋️');
+        draw();
+    }
+
+    function moveNPCs(){
+        for(const npc of npcs){
+            npc.moveTimer--;if(npc.moveTimer>0) continue;
+            npc.moveTimer=15+Math.floor(Math.random()*20);
+            const dx=Math.floor(Math.random()*3)-1, dy=Math.floor(Math.random()*3)-1;
+            const nx=npc.x+dx, ny=npc.y+dy;
+            if(nx>0&&nx<MAP_W-1&&ny>0&&ny<MAP_H-1){
+                const t=map[ny][nx]; if(t===GRASS||t===ROAD||t===SIDE||t===BFLOWER){npc.x=nx;npc.y=ny;}
+            }
+        }
+    }
+
+    const bldColors={blue:'#1565C0',red:'#C62828',yellow:'#F9A825',green:'#2E7D32',purple:'#6A1B9A',orange:'#E65100',pink:'#AD1457',cyan:'#00838F',white:'#BDBDBD',lime:'#689F38',shop:'#FF6F00',police:'#1565C0',hospital:'#C62828',school:'#6A1B9A'};
+
+    function draw(){
+        const camX=Math.max(0,Math.min(MAP_W-VIEW_W,player.x-Math.floor(VIEW_W/2)));
+        const camY=Math.max(0,Math.min(MAP_H-VIEW_H,player.y-Math.floor(VIEW_H/2)));
+        dayTimer++;if(dayTimer>600){dayTimer=0;timeOfDay=(timeOfDay+1)%4;}
+        const timeNames=['🌅 Morning','☀️ Afternoon','🌇 Evening','🌙 Night'];
+        const skyColors=['#87CEEB','#64B5F6','#FF8A65','#1a1a3e'];
+        ctx.fillStyle=skyColors[timeOfDay]; ctx.fillRect(0,0,W,HH);
+
+        for(let vy=0;vy<VIEW_H;vy++) for(let vx=0;vx<VIEW_W;vx++){
+            const mx=camX+vx,my=camY+vy; if(mx>=MAP_W||my>=MAP_H) continue;
+            const px=vx*TILE,py=vy*TILE,tile=map[my][mx];
+            const tColors={[GRASS]:'#4CAF50',[ROAD]:'#616161',[SIDE]:'#9E9E9E',[WATER]:'#1565C0',[TTREE]:'#4CAF50',[BFLOWER]:'#4CAF50',[BENCH]:'#795548',[BCAR]:'#616161'};
+            ctx.fillStyle=tColors[tile]||'#4CAF50';
+            if(tile>=10&&tile<=16){const b=buildings.find(b=>mx>=b.x&&mx<b.x+b.w&&my>=b.y&&my<b.y+b.h);ctx.fillStyle=b?(bldColors[b.style]||'#888'):'#888';}
+            ctx.fillRect(px,py,TILE,TILE);
+
+            if(tile===TTREE){ctx.fillStyle='#1B5E20';ctx.beginPath();ctx.moveTo(px+TILE/2,py+2);ctx.lineTo(px+2,py+TILE-2);ctx.lineTo(px+TILE-2,py+TILE-2);ctx.fill();ctx.fillStyle='#5D4037';ctx.fillRect(px+TILE/2-2,py+TILE-5,4,5);}
+            else if(tile===BFLOWER){ctx.fillStyle=['#E91E63','#FF9800','#9C27B0','#FFEB3B'][(mx+my*7)%4];ctx.beginPath();ctx.arc(px+TILE/2,py+TILE/2,4,0,Math.PI*2);ctx.fill();}
+            else if(tile===WATER){ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(px+2,py+TILE/2,TILE-4,2);}
+            else if(tile===ROAD){ctx.fillStyle='#FFD54F';if(my===8||my===18) ctx.fillRect(px+TILE/2-1,py,2,TILE);if(mx===12||mx===26) ctx.fillRect(px,py+TILE/2-1,TILE,2);}
+            else if(tile===BCAR){ctx.fillStyle='#F44336';ctx.fillRect(px+2,py+4,TILE-4,TILE-8);ctx.fillStyle='#90CAF9';ctx.fillRect(px+4,py+5,TILE-8,5);}
+            else if(tile>=10&&tile<=16){ctx.fillStyle=timeOfDay===3?'#FFEB3B':'#90CAF9';ctx.fillRect(px+5,py+6,5,5);ctx.fillRect(px+TILE-10,py+6,5,5);
+                const b=buildings.find(b=>mx===b.x+1&&my===b.y+1);if(b){ctx.fillStyle='#5D4037';ctx.fillRect(px+TILE/2-3,py+TILE-8,6,8);}}
+        }
+
+        for(const npc of npcs){const sx=(npc.x-camX)*TILE,sy=(npc.y-camY)*TILE;if(sx<-TILE||sx>W||sy<-TILE||sy>HH) continue;ctx.font=`${TILE-2}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(npc.emoji,sx+TILE/2,sy+TILE/2);}
+        const ppx=(player.x-camX)*TILE,ppy=(player.y-camY)*TILE;
+        ctx.font=`${TILE}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(player.emoji,ppx+TILE/2,ppy+TILE/2);
+
+        if(timeOfDay===3){ctx.fillStyle='rgba(0,0,20,0.4)';ctx.fillRect(0,0,W,HH);}
+        else if(timeOfDay===2){ctx.fillStyle='rgba(255,100,0,0.1)';ctx.fillRect(0,0,W,HH);}
+
+        ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,W,22);
+        ctx.font='bold 10px Orbitron, sans-serif';ctx.textBaseline='top';
+        ctx.textAlign='left';ctx.fillStyle='#4CAF50';ctx.fillText(timeNames[timeOfDay],4,5);
+        ctx.textAlign='center';ctx.fillStyle='#ffaa00';ctx.fillText('💰$'+money,W/2,5);
+        ctx.textAlign='right';ctx.fillStyle='#00d4ff';ctx.fillText('🎒'+bhInventory.length,W-4,5);
+
+        if(msgTimer>0){msgTimer--;ctx.globalAlpha=Math.min(1,msgTimer/30);ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(10,HH-45,W-20,32);ctx.fillStyle='#fff';ctx.font='11px Rajdhani, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(msgText,W/2,HH-29);ctx.globalAlpha=1;}
+
+        const st=document.getElementById('bh-status');
+        if(st) st.textContent='📍 '+currentLocation+' | 🎒 '+bhInventory.join(', ');
+    }
+
+    let frameId;
+    function gameLoop(){moveNPCs();draw();frameId=requestAnimationFrame(gameLoop);}
+
+    function onKey(e){
+        switch(e.key){
+            case 'ArrowUp':case 'w':case 'W':movePlayer(0,-1);break;
+            case 'ArrowDown':case 's':case 'S':movePlayer(0,1);break;
+            case 'ArrowLeft':case 'a':case 'A':movePlayer(-1,0);break;
+            case 'ArrowRight':case 'd':case 'D':movePlayer(1,0);break;
+            case 'e':case 'E':interact();break;
+        }
+    }
+    document.addEventListener('keydown',onKey);
+
+    const setupBtn=(id,fn)=>{const b=document.getElementById(id);if(b){b.addEventListener('click',fn);b.addEventListener('touchstart',(e)=>{e.preventDefault();fn();});}};
+    setupBtn('bh-up',()=>movePlayer(0,-1));setupBtn('bh-down',()=>movePlayer(0,1));
+    setupBtn('bh-left',()=>movePlayer(-1,0));setupBtn('bh-right',()=>movePlayer(1,0));
+    setupBtn('bh-action',interact);
+
+    resetGame();showMsg('🏘️ Welcome to Brookhaven! Explore the town!',150);
+    frameId=requestAnimationFrame(gameLoop);
+    gameScoreDisplay.textContent='';
+
+    gameCleanup=()=>{cancelAnimationFrame(frameId);document.removeEventListener('keydown',onKey);};
 }
