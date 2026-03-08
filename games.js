@@ -7838,7 +7838,7 @@ function initConnect4() {
 
 
 function initChess() {
-    gameTitle.textContent = 'â™Ÿï¸ Chess';
+    gameTitle.textContent = 'Chess Chess';
     const best = getHigh('chess');
     gameScoreDisplay.textContent = best ? 'Wins: ' + best : '';
 
@@ -8548,7 +8548,7 @@ function initChess() {
         ctx.fillStyle = '#e0e0e0';
         ctx.font = 'bold ' + Math.max(28, W * 0.06) + 'px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('â™Ÿï¸ Chess', W / 2, H * 0.15);
+        ctx.fillText('Chess Chess', W / 2, H * 0.15);
 
         // Subtitle
         ctx.font = Math.max(14, W * 0.03) + 'px Arial';
