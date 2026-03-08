@@ -79,6 +79,7 @@ function launchGame(name) {
         case 'spotdiff': initSpotDiff(); break;
         case 'tag': initTag(); break;
         case 'geodash': initGeoDash(); break;
+        case 'kingshot': initKingShot(); break;
 
     }
 }
@@ -2810,5 +2811,413 @@ function initGeoDash() {
         running = false;
         cancelAnimationFrame(frameId);
         document.removeEventListener('keydown', onKey);
+    };
+}
+
+// ==================== KING SHOT ====================
+function initKingShot() {
+    gameTitle.textContent = '👑 King Shot';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 380;
+    canvas.height = 400;
+    canvas.style.cssText = 'display:block;margin:0 auto;border:2px solid #ffaa00;border-radius:12px;background:#1a1a2e;touch-action:none;cursor:crosshair;';
+    const info = document.createElement('div');
+    info.style.cssText = 'text-align:center;color:#666;font-size:0.75rem;margin-top:8px;';
+    info.textContent = 'Drag from the cannon to aim and release to shoot! Knock all targets off!';
+
+    gameArea.appendChild(canvas);
+    gameArea.appendChild(info);
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const gravity = 0.3;
+    const groundY = H - 30;
+
+    // Cannon position
+    const cannonX = 50;
+    const cannonY = groundY - 10;
+
+    let balls, targets, blocks, level, score, shotsLeft, dragging, dragStart, dragEnd;
+    let activeBall, running, frameId, particles;
+
+    function buildLevel(lvl) {
+        targets = [];
+        blocks = [];
+
+        const baseX = 220;
+        const blockW = 20;
+        const blockH = 40;
+
+        if (lvl <= 2) {
+            // Simple stack
+            const cols = lvl + 1;
+            for (let c = 0; c < cols; c++) {
+                blocks.push({ x: baseX + c * 50, y: groundY - blockH, w: blockW, h: blockH, vy: 0, vx: 0, fallen: false });
+                targets.push({ x: baseX + c * 50 + blockW / 2, y: groundY - blockH - 15, r: 12, hit: false, emoji: '😈' });
+            }
+        } else if (lvl <= 4) {
+            // Two rows
+            for (let c = 0; c < 2; c++) {
+                blocks.push({ x: baseX + c * 60, y: groundY - blockH, w: blockW, h: blockH, vy: 0, vx: 0, fallen: false });
+                // Plank on top
+            }
+            blocks.push({ x: baseX - 5, y: groundY - blockH - 10, w: 80, h: 10, vy: 0, vx: 0, fallen: false });
+            targets.push({ x: baseX + 30, y: groundY - blockH - 35, r: 12, hit: false, emoji: '👑' });
+            targets.push({ x: baseX - 10, y: groundY - 15, r: 10, hit: false, emoji: '😈' });
+            targets.push({ x: baseX + 70, y: groundY - 15, r: 10, hit: false, emoji: '😈' });
+        } else {
+            // Complex structure
+            const numCols = Math.min(3 + Math.floor(lvl / 3), 5);
+            const numRows = Math.min(1 + Math.floor(lvl / 4), 3);
+            for (let row = 0; row < numRows; row++) {
+                for (let c = 0; c < numCols; c++) {
+                    const bx = baseX + c * 40 - (numCols * 20);
+                    const by = groundY - blockH * (row + 1) - row * 10;
+                    blocks.push({ x: bx, y: by, w: blockW, h: blockH, vy: 0, vx: 0, fallen: false });
+                }
+                // Planks between rows
+                if (row < numRows - 1) {
+                    blocks.push({ x: baseX - (numCols * 20) - 5, y: groundY - blockH * (row + 1) - (row + 1) * 10, w: numCols * 40 + 10, h: 8, vy: 0, vx: 0, fallen: false });
+                }
+            }
+            // Targets on top and sides
+            for (let c = 0; c < Math.min(numCols, 3); c++) {
+                targets.push({
+                    x: baseX + c * 40 - (numCols * 20) + 10,
+                    y: groundY - blockH * numRows - numRows * 10 - 15,
+                    r: 11, hit: false,
+                    emoji: c === 1 ? '👑' : '😈'
+                });
+            }
+        }
+
+        shotsLeft = 3 + Math.floor(lvl / 3);
+        activeBall = null;
+    }
+
+    function resetGame() {
+        level = 1;
+        score = 0;
+        particles = [];
+        balls = [];
+        dragging = false;
+        running = true;
+        buildLevel(level);
+        draw();
+    }
+
+    function shoot(vx, vy) {
+        if (shotsLeft <= 0 || activeBall) return;
+        shotsLeft--;
+        activeBall = {
+            x: cannonX + 20,
+            y: cannonY - 20,
+            vx: vx,
+            vy: vy,
+            r: 8
+        };
+        balls.push(activeBall);
+    }
+
+    function step() {
+        if (!running) return;
+
+        // Move active ball
+        if (activeBall) {
+            activeBall.vy += gravity;
+            activeBall.x += activeBall.vx;
+            activeBall.y += activeBall.vy;
+
+            // Ball vs blocks
+            for (const b of blocks) {
+                if (b.fallen) continue;
+                if (activeBall.x + activeBall.r > b.x && activeBall.x - activeBall.r < b.x + b.w &&
+                    activeBall.y + activeBall.r > b.y && activeBall.y - activeBall.r < b.y + b.h) {
+                    // Hit block — knock it
+                    b.vx = activeBall.vx * 0.6;
+                    b.vy = -3 - Math.random() * 2;
+                    b.fallen = true;
+                    activeBall.vx *= 0.3;
+                    activeBall.vy *= 0.3;
+                    // Particles
+                    for (let i = 0; i < 6; i++) {
+                        particles.push({
+                            x: activeBall.x, y: activeBall.y,
+                            vx: (Math.random() - 0.5) * 5,
+                            vy: (Math.random() - 0.5) * 5,
+                            life: 20, color: '#ffaa00'
+                        });
+                    }
+                }
+            }
+
+            // Ball vs targets
+            for (const t of targets) {
+                if (t.hit) continue;
+                const dx = activeBall.x - t.x;
+                const dy = activeBall.y - t.y;
+                if (Math.sqrt(dx * dx + dy * dy) < activeBall.r + t.r) {
+                    t.hit = true;
+                    score += 50 + level * 10;
+                    for (let i = 0; i < 10; i++) {
+                        particles.push({
+                            x: t.x, y: t.y,
+                            vx: (Math.random() - 0.5) * 6,
+                            vy: (Math.random() - 0.5) * 6,
+                            life: 25, color: t.emoji === '👑' ? '#ffaa00' : '#ff4444'
+                        });
+                    }
+                }
+            }
+
+            // Ball off screen
+            if (activeBall.y > H + 50 || activeBall.x > W + 50 || activeBall.x < -50) {
+                activeBall = null;
+            }
+        }
+
+        // Fallen blocks physics
+        for (const b of blocks) {
+            if (!b.fallen) continue;
+            b.vy += gravity;
+            b.x += b.vx;
+            b.y += b.vy;
+
+            // Fallen blocks hit targets
+            for (const t of targets) {
+                if (t.hit) continue;
+                if (b.x + b.w > t.x - t.r && b.x < t.x + t.r &&
+                    b.y + b.h > t.y - t.r && b.y < t.y + t.r) {
+                    t.hit = true;
+                    score += 50 + level * 10;
+                    for (let i = 0; i < 8; i++) {
+                        particles.push({
+                            x: t.x, y: t.y,
+                            vx: (Math.random() - 0.5) * 5,
+                            vy: (Math.random() - 0.5) * 5,
+                            life: 20, color: '#ff44aa'
+                        });
+                    }
+                }
+            }
+        }
+
+        // Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].x += particles[i].vx;
+            particles[i].y += particles[i].vy;
+            particles[i].life--;
+            if (particles[i].life <= 0) particles.splice(i, 1);
+        }
+
+        // Check win/lose
+        const allHit = targets.every(t => t.hit);
+        if (allHit && targets.length > 0) {
+            running = false;
+            score += shotsLeft * 30; // bonus for remaining shots
+            setTimeout(() => {
+                level++;
+                particles = [];
+                balls = [];
+                activeBall = null;
+                dragging = false;
+                running = true;
+                buildLevel(level);
+                frameId = requestAnimationFrame(step);
+            }, 1000);
+        } else if (!activeBall && shotsLeft <= 0 && !allHit) {
+            // Wait a beat for physics to settle
+            setTimeout(() => {
+                const nowAllHit = targets.every(t => t.hit);
+                if (!nowAllHit) {
+                    running = false;
+                    showGameOver('Out of shots!', score, 'kingshot', resetGame);
+                }
+            }, 1500);
+        }
+
+        draw();
+        if (running) frameId = requestAnimationFrame(step);
+    }
+
+    function draw() {
+        // Sky gradient
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, '#0a0a2e');
+        grad.addColorStop(1, '#1a1a3e');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Ground
+        ctx.fillStyle = '#2a1a0a';
+        ctx.fillRect(0, groundY, W, H - groundY);
+        ctx.fillStyle = '#3a2a1a';
+        ctx.fillRect(0, groundY, W, 3);
+
+        // Cannon
+        ctx.fillStyle = '#555';
+        ctx.fillRect(cannonX - 5, cannonY - 30, 30, 30);
+        ctx.fillStyle = '#777';
+        ctx.beginPath();
+        ctx.arc(cannonX + 10, cannonY - 15, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Aim line when dragging
+        if (dragging && dragStart && dragEnd) {
+            const dx = dragStart.x - dragEnd.x;
+            const dy = dragStart.y - dragEnd.y;
+            ctx.strokeStyle = 'rgba(255,170,0,0.6)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(cannonX + 20, cannonY - 20);
+            ctx.lineTo(cannonX + 20 + dx * 0.5, cannonY - 20 + dy * 0.5);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Power indicator
+            const power = Math.min(Math.sqrt(dx * dx + dy * dy), 150);
+            ctx.fillStyle = power > 100 ? '#ff4444' : power > 60 ? '#ffaa00' : '#00ff88';
+            ctx.font = '11px Orbitron, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Power: ' + Math.round(power), cannonX + 20, cannonY - 45);
+        }
+
+        // Blocks
+        for (const b of blocks) {
+            if (b.y > H + 50) continue;
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+            ctx.strokeStyle = '#A0522D';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(b.x, b.y, b.w, b.h);
+        }
+
+        // Targets
+        for (const t of targets) {
+            if (t.hit) continue;
+            ctx.font = `${t.r * 2}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(t.emoji, t.x, t.y);
+        }
+
+        // Balls
+        for (const ball of balls) {
+            if (ball.y > H + 50) continue;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffaa00';
+            ctx.shadowColor = '#ffaa00';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // Particles
+        for (const p of particles) {
+            ctx.globalAlpha = p.life / 25;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+        }
+        ctx.globalAlpha = 1;
+
+        // HUD
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(0, 0, W, 30);
+        ctx.font = 'bold 12px Orbitron, sans-serif';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#b44aff';
+        ctx.fillText('Level ' + level, 8, 8);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffaa00';
+        ctx.fillText('🔵'.repeat(shotsLeft), W / 2, 6);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#00ff88';
+        ctx.fillText('Score: ' + score, W - 8, 8);
+    }
+
+    // Input handling
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) * (W / rect.width),
+            y: (clientY - rect.top) * (H / rect.height)
+        };
+    }
+
+    function onDown(e) {
+        if (!running || activeBall) return;
+        e.preventDefault();
+        dragging = true;
+        dragStart = getPos(e);
+        dragEnd = dragStart;
+    }
+
+    function onMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        dragEnd = getPos(e);
+        draw();
+    }
+
+    function onUp(e) {
+        if (!dragging) return;
+        dragging = false;
+        if (!dragStart || !dragEnd) return;
+
+        const dx = dragStart.x - dragEnd.x;
+        const dy = dragStart.y - dragEnd.y;
+        const power = Math.min(Math.sqrt(dx * dx + dy * dy), 150);
+
+        if (power > 10) {
+            const angle = Math.atan2(dy, dx);
+            const vx = Math.cos(angle) * power * 0.08;
+            const vy = Math.sin(angle) * power * 0.08;
+            shoot(vx, vy);
+            if (!frameId || !running) {
+                running = true;
+                frameId = requestAnimationFrame(step);
+            }
+        }
+        dragStart = null;
+        dragEnd = null;
+    }
+
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('touchstart', onDown, {passive: false});
+    canvas.addEventListener('touchmove', onMove, {passive: false});
+    canvas.addEventListener('touchend', onUp);
+
+    gameScoreDisplay.textContent = 'High: ' + getHigh('kingshot');
+
+    resetGame();
+    running = false; // wait for first shot to start physics
+
+    // Draw initial
+    draw();
+    ctx.font = 'bold 16px Orbitron, sans-serif';
+    ctx.fillStyle = '#ffaa00';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('👑 Drag to Aim & Shoot!', W / 2, H / 2 - 40);
+
+    running = true;
+
+    gameCleanup = () => {
+        running = false;
+        cancelAnimationFrame(frameId);
+        canvas.removeEventListener('mousedown', onDown);
+        canvas.removeEventListener('mousemove', onMove);
+        canvas.removeEventListener('mouseup', onUp);
+        canvas.removeEventListener('touchstart', onDown);
+        canvas.removeEventListener('touchmove', onMove);
+        canvas.removeEventListener('touchend', onUp);
     };
 }
