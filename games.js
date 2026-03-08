@@ -76,6 +76,7 @@ function launchGame(name) {
         case 'bingo': initBingo(); break;
         case 'hideseek': initHideSeek(); break;
         case 'racing': initRacing(); break;
+        case 'spotdiff': initSpotDiff(); break;
 
     }
 }
@@ -1903,5 +1904,176 @@ function initRacing() {
         running = false;
         cancelAnimationFrame(frameId);
         document.removeEventListener('keydown', onKey);
+    };
+}
+
+// ==================== SPOT THE DIFFERENCE ====================
+function initSpotDiff() {
+    gameTitle.textContent = '🔍 Spot the Difference';
+
+    // Scenes are emoji grids. We generate a grid then change some emojis for the "different" version.
+    const emojiSets = [
+        ['🌳','🏠','🌸','☀️','🐦','⛅','🌈','🦋','🌺','🍄','🐿️','🪺','🌻','🐝','🪻','🌾'],
+        ['🐟','🐠','🦀','🐙','🪸','🐚','🦈','🐳','🫧','🌊','⚓','🦞','🐡','🦑','🐬','🪼'],
+        ['🍕','🍔','🌮','🍦','🎂','🧁','🍩','🍪','🥤','🍿','🌭','🍟','🥨','🧇','🍫','🥞'],
+        ['🚀','🌙','⭐','🪐','👽','🛸','☄️','🌌','🔭','🛰️','🌠','💫','🧑‍🚀','🌑','🌕','✨'],
+        ['🎸','🥁','🎹','🎺','🎻','🪘','🎤','🎵','🎶','🎷','🪗','📯','🎙️','🔔','🎼','🪈'],
+        ['🏀','⚽','🏈','🎾','🏓','🎯','🏐','🥊','⛳','🏋️','🤸','🏊','🚴','⛷️','🏄','🤾']
+    ];
+
+    const swapEmojis = {
+        '🌳':'🌴','🏠':'🏡','🌸':'🌺','☀️':'🌙','🐦':'🦅','⛅':'☁️','🌈':'🌤️','🦋':'🐛',
+        '🐟':'🐡','🐠':'🐬','🦀':'🦞','🐙':'🦑','🪸':'🌊','🐚':'🪸','🦈':'🐳','🐳':'🐋',
+        '🍕':'🌮','🍔':'🌯','🌮':'🥙','🍦':'🧁','🎂':'🍰','🧁':'🍦','🍩':'🥯','🍪':'🍫',
+        '🚀':'🛸','🌙':'🌕','⭐':'💫','🪐':'🌍','👽':'🤖','🛸':'🚀','☄️':'🌠','🌌':'🌃',
+        '🎸':'🎻','🥁':'🪘','🎹':'🪗','🎺':'📯','🎻':'🎸','🪘':'🥁','🎤':'🎙️','🎵':'🎶',
+        '🏀':'⚽','⚽':'🏀','🏈':'🏉','🎾':'🏸','🏓':'🏸','🎯':'🥅','🏐':'🏀','🥊':'🤼',
+        '🌺':'🌸','🍄':'🌰','🐿️':'🐇','🪺':'🐣','🌻':'🌼','🐝':'🐞','🪻':'💐','🌾':'🌿',
+        '🫧':'💧','🌊':'🫧','⚓':'🪝','🦞':'🦐','🐡':'🐠','🦑':'🐙','🐬':'🐟','🪼':'🎐',
+        '🥤':'🧃','🍿':'🥜','🌭':'🥓','🍟':'🧆','🥨':'🥖','🧇':'🥞','🍫':'🍬','🥞':'🧇'
+    };
+
+    let level, score, found, differences, timer, timerInterval, originalGrid, modifiedGrid, gridSize, diffPositions;
+
+    function startLevel() {
+        gridSize = 4;
+        const numDiffs = Math.min(3 + Math.floor(level / 2), 6);
+        found = 0;
+        differences = numDiffs;
+        timer = 30 + level * 3;
+
+        // Pick a random emoji set
+        const setIndex = Math.floor(Math.random() * emojiSets.length);
+        const emojiPool = [...emojiSets[setIndex]];
+
+        // Shuffle
+        for (let i = emojiPool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [emojiPool[i], emojiPool[j]] = [emojiPool[j], emojiPool[i]];
+        }
+
+        originalGrid = emojiPool.slice(0, gridSize * gridSize);
+        modifiedGrid = [...originalGrid];
+
+        // Pick positions to change
+        const allPositions = [...Array(gridSize * gridSize).keys()];
+        for (let i = allPositions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allPositions[i], allPositions[j]] = [allPositions[j], allPositions[i]];
+        }
+        diffPositions = new Set(allPositions.slice(0, numDiffs));
+
+        diffPositions.forEach(pos => {
+            const orig = originalGrid[pos];
+            modifiedGrid[pos] = swapEmojis[orig] || '❓';
+        });
+
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timer--;
+            render();
+            if (timer <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                // Reveal all remaining differences
+                render(true);
+                setTimeout(() => {
+                    showGameOver('Time\'s Up!', score, 'spotdiff', () => {
+                        level = 1; score = 0; startLevel();
+                    });
+                }, 2000);
+            }
+        }, 1000);
+
+        render();
+    }
+
+    function checkCell(idx) {
+        if (!diffPositions.has(idx)) {
+            timer = Math.max(0, timer - 3);
+            render();
+            return;
+        }
+
+        diffPositions.delete(idx);
+        found++;
+        score += 15 + level * 5;
+
+        if (found >= differences) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            score += timer * 3;
+            render();
+            setTimeout(() => {
+                level++;
+                startLevel();
+            }, 1200);
+        } else {
+            render();
+        }
+    }
+
+    function render(revealAll) {
+        const cellSize = 60;
+
+        function buildGrid(gridData, clickable, label) {
+            let html = `<div style="text-align:center;"><div style="color:#aaa;font-size:0.8rem;margin-bottom:5px;">${label}</div>`;
+            html += `<div style="display:inline-grid;grid-template-columns:repeat(${gridSize},${cellSize}px);gap:3px;">`;
+            for (let i = 0; i < gridData.length; i++) {
+                const isFound = !diffPositions.has(i) && modifiedGrid[i] !== originalGrid[i];
+                const isRevealed = revealAll && diffPositions.has(i);
+                let bg = '#1a1a2e';
+                let border = '2px solid #333';
+                let glow = '';
+
+                if (isFound && clickable) {
+                    bg = '#0a3a1a';
+                    border = '2px solid #00ff88';
+                    glow = 'box-shadow:0 0 12px rgba(0,255,136,0.4);';
+                }
+                if (isRevealed) {
+                    bg = '#3a1a0a';
+                    border = '2px solid #ff4444';
+                    glow = 'box-shadow:0 0 12px rgba(255,68,68,0.4);';
+                }
+
+                const onclick = clickable ? `onclick="window._spotDiffCheck(${i})"` : '';
+                html += `<div ${onclick} style="width:${cellSize}px;height:${cellSize}px;display:flex;align-items:center;justify-content:center;font-size:${cellSize * 0.6}px;background:${bg};border:${border};border-radius:8px;cursor:${clickable ? 'pointer' : 'default'};transition:all 0.2s;user-select:none;${glow}">${gridData[i]}</div>`;
+            }
+            html += '</div></div>';
+            return html;
+        }
+
+        const remaining = differences - found;
+
+        gameArea.innerHTML = `
+            <div style="text-align:center;padding:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;max-width:350px;margin:0 auto 10px;">
+                    <div style="color:#b44aff;font-family:Orbitron,sans-serif;font-size:0.9rem;">Level ${level}</div>
+                    <div style="color:${timer <= 10 ? '#ff4444' : '#00d4ff'};font-family:Orbitron,sans-serif;font-size:1.1rem;${timer <= 10 ? 'animation:blink 0.5s infinite;' : ''}">⏱️ ${timer}s</div>
+                    <div style="color:#00ff88;font-family:Orbitron,sans-serif;font-size:0.9rem;">Score: ${score}</div>
+                </div>
+                <div style="margin-bottom:10px;color:#ffaa00;font-size:0.9rem;">Find ${remaining} difference${remaining !== 1 ? 's' : ''}! Tap on the RIGHT image.</div>
+                <div style="display:flex;justify-content:center;gap:15px;flex-wrap:wrap;">
+                    ${buildGrid(originalGrid, false, '✅ Original')}
+                    ${buildGrid(modifiedGrid, true, '🔍 Changed')}
+                </div>
+                <div style="margin-top:10px;color:#666;font-size:0.75rem;">Wrong taps lose 3 seconds!</div>
+                <div style="margin-top:5px;color:#888;font-size:0.8rem;">High Score: ${getHigh('spotdiff')}</div>
+            </div>
+            <style>@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}</style>
+        `;
+    }
+
+    window._spotDiffCheck = checkCell;
+
+    gameScoreDisplay.textContent = '';
+    level = 1;
+    score = 0;
+    startLevel();
+
+    gameCleanup = () => {
+        if (timerInterval) clearInterval(timerInterval);
+        delete window._spotDiffCheck;
     };
 }
