@@ -87,6 +87,7 @@ function launchGame(name) {
         case 'fnaf': initFNAF(); break;
         case 'scaryshawarma': initScaryShawarma(); break;
         case 'redgreenlight': initRedGreenLight(); break;
+        case 'hittarget': initHitTarget(); break;
 
     }
 }
@@ -6120,5 +6121,457 @@ function initRedGreenLight() {
         clearInterval(timerInterval);
         stopRunning();
         document.removeEventListener('keydown', onKey);
+    };
+}
+
+// ==================== HIT THE TARGET (Archery) ====================
+function initHitTarget() {
+    gameTitle.textContent = '🏹 Hit the Target';
+    const best = getHigh('hittarget');
+    gameScoreDisplay.textContent = best ? 'Best: ' + best : '';
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioCtx();
+    function playTone(freq, dur, type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.value = freq;
+        gain.gain.value = 0.12;
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.stop(audioCtx.currentTime + dur);
+    }
+    function shootSound() { playTone(400, 0.1, 'triangle'); setTimeout(() => playTone(200, 0.15, 'sine'), 100); }
+    function hitSound(pts) { playTone(600 + pts * 40, 0.15, 'sine'); }
+    function missSound() { playTone(150, 0.2, 'sawtooth'); }
+    function winSound() { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.2, 'sine'), i*120)); }
+
+    let canvas, ctx, W, H;
+    let running = false;
+    let score = 0;
+    let arrows = 10;
+    let round = 0;
+    let totalRounds = 10;
+    let aiming = false;
+    let power = 0;
+    let powerDir = 1;
+    let angle = 0;
+    let arrowFlying = false;
+    let arrowX, arrowY, arrowVX, arrowVY;
+    let targetX, targetY, targetR;
+    let targetVY = 0;
+    let targetDir = 1;
+    let frameId;
+    let phase = 'menu'; // menu, aim, power, fly, result, gameover
+    let hitResult = null;
+    let hitTimer = 0;
+    let difficulty = 'medium';
+    let wind = 0;
+
+    const DIFF = {
+        easy:   { targetR: 50, speed: 0.5, arrows: 12, wind: 0 },
+        medium: { targetR: 40, speed: 1.0, arrows: 10, wind: 1 },
+        hard:   { targetR: 30, speed: 1.8, arrows: 8, wind: 2 }
+    };
+
+    gameArea.innerHTML = '<canvas id="ht-canvas" style="width:100%;height:100%;display:block;border-radius:12px;cursor:crosshair;"></canvas>';
+    canvas = document.getElementById('ht-canvas');
+    ctx = canvas.getContext('2d');
+
+    function resize() {
+        const rect = gameArea.getBoundingClientRect();
+        W = canvas.width = rect.width;
+        H = canvas.height = rect.height;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function newTarget() {
+        const s = DIFF[difficulty];
+        targetR = s.targetR;
+        targetX = W * 0.75;
+        targetY = H * 0.3 + Math.random() * (H * 0.35);
+        targetDir = 1;
+        wind = (Math.random() - 0.5) * s.wind * 2;
+    }
+
+    function drawBg() {
+        // Sky
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, '#1a1a3e');
+        grad.addColorStop(0.6, '#2a2a5e');
+        grad.addColorStop(1, '#1a3a1a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+        // Ground
+        ctx.fillStyle = '#2d5a1e';
+        ctx.fillRect(0, H * 0.85, W, H * 0.15);
+        ctx.fillStyle = '#3a7a2a';
+        ctx.fillRect(0, H * 0.85, W, 3);
+    }
+
+    function drawTarget() {
+        const colors = ['#ff0000','#ffffff','#ff0000','#ffffff','#ff4444'];
+        const rings = [targetR, targetR*0.8, targetR*0.6, targetR*0.4, targetR*0.2];
+        for (let i = 0; i < rings.length; i++) {
+            ctx.beginPath();
+            ctx.arc(targetX, targetY, rings[i], 0, Math.PI * 2);
+            ctx.fillStyle = colors[i];
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+        // Bullseye
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, targetR * 0.08, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffdd00';
+        ctx.fill();
+    }
+
+    function drawBow() {
+        const bowX = W * 0.1;
+        const bowY = H * 0.7;
+        // Bow
+        ctx.beginPath();
+        ctx.arc(bowX, bowY, 40, -Math.PI*0.4, Math.PI*0.4);
+        ctx.strokeStyle = '#8B4513';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        // String
+        ctx.beginPath();
+        ctx.moveTo(bowX + 40 * Math.cos(-Math.PI*0.4), bowY + 40 * Math.sin(-Math.PI*0.4));
+        const pullBack = phase === 'power' ? power / 100 * 15 : 0;
+        ctx.lineTo(bowX - pullBack, bowY);
+        ctx.lineTo(bowX + 40 * Math.cos(Math.PI*0.4), bowY + 40 * Math.sin(Math.PI*0.4));
+        ctx.strokeStyle = '#ddd';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Arrow on bow
+        if (phase === 'aim' || phase === 'power') {
+            ctx.beginPath();
+            ctx.moveTo(bowX - pullBack - 5, bowY);
+            ctx.lineTo(bowX + 30, bowY - Math.tan(angle) * 30);
+            ctx.strokeStyle = '#ffdd00';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            // Arrowhead
+            const tipX = bowX + 30;
+            const tipY = bowY - Math.tan(angle) * 30;
+            ctx.beginPath();
+            ctx.moveTo(tipX + 8, tipY);
+            ctx.lineTo(tipX - 4, tipY - 5);
+            ctx.lineTo(tipX - 4, tipY + 5);
+            ctx.fillStyle = '#aaa';
+            ctx.fill();
+        }
+        // Archer emoji
+        ctx.font = '36px serif';
+        ctx.fillText('🧑', bowX - 30, bowY + 10);
+    }
+
+    function drawArrow() {
+        if (!arrowFlying) return;
+        ctx.beginPath();
+        ctx.moveTo(arrowX - 15, arrowY);
+        ctx.lineTo(arrowX + 15, arrowY);
+        ctx.strokeStyle = '#ffdd00';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        // Arrowhead
+        ctx.beginPath();
+        ctx.moveTo(arrowX + 20, arrowY);
+        ctx.lineTo(arrowX + 10, arrowY - 5);
+        ctx.lineTo(arrowX + 10, arrowY + 5);
+        ctx.fillStyle = '#ccc';
+        ctx.fill();
+    }
+
+    function drawHUD() {
+        ctx.fillStyle = '#fff';
+        ctx.font = '18px Orbitron, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Score: ' + score, 15, 30);
+        ctx.fillText('Arrows: ' + arrows, 15, 55);
+        ctx.textAlign = 'right';
+        ctx.fillText('Round: ' + round + '/' + totalRounds, W - 15, 30);
+        if (wind !== 0) {
+            const windTxt = wind > 0 ? 'Wind: → ' + wind.toFixed(1) : 'Wind: ← ' + Math.abs(wind).toFixed(1);
+            ctx.fillText(windTxt, W - 15, 55);
+        }
+        ctx.textAlign = 'left';
+
+        // Power bar
+        if (phase === 'power') {
+            ctx.fillStyle = '#333';
+            ctx.fillRect(W * 0.08, H * 0.88, W * 0.2, 16);
+            const pColor = power < 40 ? '#00ff88' : power < 75 ? '#ffaa00' : '#ff4444';
+            ctx.fillStyle = pColor;
+            ctx.fillRect(W * 0.08, H * 0.88, (W * 0.2) * (power / 100), 16);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(W * 0.08, H * 0.88, W * 0.2, 16);
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Rajdhani, sans-serif';
+            ctx.fillText('POWER', W * 0.08, H * 0.88 - 4);
+        }
+
+        // Aim indicator
+        if (phase === 'aim') {
+            ctx.fillStyle = '#00d4ff';
+            ctx.font = '16px Rajdhani, sans-serif';
+            ctx.fillText('TAP to set aim!', W * 0.08, H * 0.95);
+        }
+    }
+
+    function drawResult() {
+        if (!hitResult) return;
+        hitTimer--;
+        const alpha = Math.min(1, hitTimer / 30);
+        ctx.globalAlpha = alpha;
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 36px Orbitron, sans-serif';
+        if (hitResult === 'miss') {
+            ctx.fillStyle = '#ff4444';
+            ctx.fillText('MISS!', W / 2, H / 2);
+        } else {
+            ctx.fillStyle = hitResult >= 8 ? '#ffdd00' : hitResult >= 4 ? '#00ff88' : '#fff';
+            ctx.fillText('+' + hitResult, W / 2, H / 2 - 20);
+            if (hitResult >= 8) {
+                ctx.font = '20px Orbitron, sans-serif';
+                ctx.fillText(hitResult === 10 ? 'BULLSEYE!!' : 'GREAT SHOT!', W / 2, H / 2 + 20);
+            }
+        }
+        ctx.globalAlpha = 1;
+        ctx.textAlign = 'left';
+        if (hitTimer <= 0) {
+            hitResult = null;
+            if (arrows <= 0 || round >= totalRounds) {
+                phase = 'gameover';
+            } else {
+                newTarget();
+                phase = 'aim';
+                angle = 0;
+            }
+        }
+    }
+
+    function drawMenu() {
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 32px Orbitron, sans-serif';
+        ctx.fillText('🏹 Hit the Target', W/2, H*0.25);
+        ctx.font = '16px Rajdhani, sans-serif';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText('Click/tap to aim, then set power!', W/2, H*0.33);
+
+        // Difficulty buttons
+        const bw = 90, bh = 36, gap = 15;
+        const startX = W/2 - (bw*3 + gap*2)/2;
+        ['Easy','Medium','Hard'].forEach((d, i) => {
+            const x = startX + i * (bw + gap);
+            const y = H * 0.42;
+            const sel = d.toLowerCase() === difficulty;
+            ctx.fillStyle = sel ? (i===0?'#00ff88':i===1?'#00d4ff':'#ff4444') : '#333';
+            ctx.beginPath();
+            ctx.roundRect(x, y, bw, bh, 8);
+            ctx.fill();
+            ctx.fillStyle = sel ? '#000' : '#aaa';
+            ctx.font = (sel ? 'bold ' : '') + '16px Rajdhani, sans-serif';
+            ctx.fillText(d, x + bw/2, y + 24);
+        });
+
+        // Start button
+        ctx.fillStyle = '#00ff88';
+        ctx.beginPath();
+        ctx.roundRect(W/2 - 70, H*0.55, 140, 50, 12);
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 22px Orbitron, sans-serif';
+        ctx.fillText('▶ START', W/2, H*0.55 + 35);
+
+        ctx.textAlign = 'left';
+    }
+
+    function drawGameOver() {
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 36px Orbitron, sans-serif';
+        const isNew = setHigh('hittarget', score);
+        ctx.fillStyle = score >= 60 ? '#00ff88' : score >= 30 ? '#ffaa00' : '#ff4444';
+        ctx.fillText(score >= 60 ? '🏆 AMAZING!' : score >= 30 ? '👏 NICE!' : '😅 TRY AGAIN!', W/2, H*0.3);
+        ctx.fillStyle = '#fff';
+        ctx.font = '24px Orbitron, sans-serif';
+        ctx.fillText('Score: ' + score, W/2, H*0.42);
+        if (isNew) {
+            ctx.fillStyle = '#ffdd00';
+            ctx.font = '18px Rajdhani, sans-serif';
+            ctx.fillText('⭐ NEW HIGH SCORE! ⭐', W/2, H*0.50);
+        }
+        gameScoreDisplay.textContent = 'Best: ' + getHigh('hittarget');
+
+        ctx.fillStyle = '#00d4ff';
+        ctx.beginPath();
+        ctx.roundRect(W/2 - 70, H*0.58, 140, 50, 12);
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 20px Orbitron, sans-serif';
+        ctx.fillText('🔄 RETRY', W/2, H*0.58 + 35);
+        ctx.textAlign = 'left';
+    }
+
+    let aimAngle = 0;
+    let aimDir = 1;
+
+    function update() {
+        if (!running) return;
+        frameId = requestAnimationFrame(update);
+        drawBg();
+
+        if (phase === 'menu') { drawMenu(); return; }
+        if (phase === 'gameover') { drawGameOver(); if (score >= 60) winSound; return; }
+
+        // Move target
+        const s = DIFF[difficulty];
+        targetY += s.speed * targetDir;
+        if (targetY < H * 0.15 + targetR) targetDir = 1;
+        if (targetY > H * 0.75 - targetR) targetDir = -1;
+
+        drawTarget();
+        drawBow();
+
+        // Aim oscillation
+        if (phase === 'aim') {
+            aimAngle += 0.02 * aimDir;
+            if (aimAngle > 0.5) aimDir = -1;
+            if (aimAngle < -0.3) aimDir = 1;
+            angle = aimAngle;
+            // Draw aim line
+            const bowX = W * 0.1, bowY = H * 0.7;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(bowX + 30, bowY);
+            ctx.lineTo(bowX + W * 0.8, bowY - Math.tan(angle) * W * 0.8);
+            ctx.strokeStyle = 'rgba(0,212,255,0.3)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        if (phase === 'power') {
+            power += 1.5 * powerDir;
+            if (power >= 100) powerDir = -1;
+            if (power <= 0) powerDir = 1;
+        }
+
+        if (phase === 'fly') {
+            arrowX += arrowVX;
+            arrowY += arrowVY;
+            arrowVY += 0.15; // gravity
+            arrowVX += wind * 0.02; // wind
+
+            // Check hit
+            const dx = arrowX - targetX;
+            const dy = arrowY - targetY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < targetR) {
+                arrowFlying = false;
+                const pct = 1 - dist / targetR;
+                const pts = Math.ceil(pct * 10);
+                score += pts;
+                hitResult = pts;
+                hitTimer = 60;
+                hitSound(pts);
+                phase = 'result';
+            } else if (arrowX > W + 50 || arrowY > H + 50 || arrowX < -50 || arrowY < -50) {
+                arrowFlying = false;
+                hitResult = 'miss';
+                hitTimer = 45;
+                missSound();
+                phase = 'result';
+            }
+        }
+
+        drawArrow();
+        drawHUD();
+        drawResult();
+    }
+
+    function onClick(e) {
+        const rect = canvas.getBoundingClientRect();
+        const mx = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+        const my = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+        const sx = mx / rect.width * W;
+        const sy = my / rect.height * H;
+
+        if (phase === 'menu') {
+            // Check difficulty buttons
+            const bw = 90, bh = 36, gap = 15;
+            const startX = W/2 - (bw*3 + gap*2)/2;
+            ['easy','medium','hard'].forEach((d, i) => {
+                const x = startX + i * (bw + gap);
+                const y = H * 0.42;
+                if (sx >= x && sx <= x+bw && sy >= y && sy <= y+bh) {
+                    difficulty = d;
+                }
+            });
+            // Check start
+            if (sx >= W/2-70 && sx <= W/2+70 && sy >= H*0.55 && sy <= H*0.55+50) {
+                const s = DIFF[difficulty];
+                score = 0;
+                round = 0;
+                arrows = s.arrows;
+                totalRounds = s.arrows;
+                newTarget();
+                phase = 'aim';
+            }
+            return;
+        }
+        if (phase === 'gameover') {
+            if (sx >= W/2-70 && sx <= W/2+70 && sy >= H*0.58 && sy <= H*0.58+50) {
+                phase = 'menu';
+            }
+            return;
+        }
+        if (phase === 'aim') {
+            angle = aimAngle;
+            phase = 'power';
+            power = 0;
+            powerDir = 1;
+            return;
+        }
+        if (phase === 'power') {
+            // Fire!
+            round++;
+            arrows--;
+            shootSound();
+            const bowX = W * 0.1, bowY = H * 0.7;
+            arrowX = bowX + 30;
+            arrowY = bowY;
+            const speed = 5 + (power / 100) * 15;
+            arrowVX = speed * Math.cos(-angle);
+            arrowVY = speed * Math.sin(-angle);
+            arrowFlying = true;
+            phase = 'fly';
+            return;
+        }
+    }
+
+    canvas.addEventListener('click', onClick);
+    canvas.addEventListener('touchstart', function(e) { e.preventDefault(); onClick(e); }, { passive: false });
+
+    running = true;
+    phase = 'menu';
+    update();
+
+    gameCleanup = () => {
+        running = false;
+        cancelAnimationFrame(frameId);
+        window.removeEventListener('resize', resize);
+        canvas.removeEventListener('click', onClick);
     };
 }
