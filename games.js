@@ -74,6 +74,7 @@ function launchGame(name) {
         case 'shooter': initShooter(); break;
         case 'pong': initPong(); break;
         case 'bingo': initBingo(); break;
+        case 'talkingtom': initTalkingCat(); break;
     }
 }
 
@@ -1257,5 +1258,235 @@ function initBingo() {
     gameCleanup = () => {
         if (callInterval) clearInterval(callInterval);
         delete window._bingoMark;
+    };
+}
+
+// ==================== TALKING CAT (Mini Talking Tom) ====================
+function initTalkingCat() {
+    gameTitle.textContent = '🐱 Talking Cat';
+
+    let happiness = 70;
+    let hunger = 50;
+    let energy = 80;
+    let coins = 0;
+    let mood = 'happy';
+    let catExpression = '😺';
+    let speechBubble = 'Hi! I\'m Tom the Cat! 🐱';
+    let animating = false;
+    let statInterval = null;
+    let outfitIndex = 0;
+
+    const outfits = ['none', '🎩', '👑', '🎀', '🕶️', '🧢', '🪖'];
+    const outfitNames = ['None', 'Top Hat', 'Crown', 'Bow', 'Sunglasses', 'Cap', 'Helmet'];
+    const catSayings = [
+        'Meow meow! 😸', 'Pet me more! 🐾', 'I love you! ❤️', 'Got any fish? 🐟',
+        'I\'m the best cat! 😼', 'Purrrrrr... 😻', 'Play with me! 🧶',
+        'That tickles! 😹', 'Hehe! 🐱', 'You\'re my best friend! 💕',
+        'I want treats! 🍪', 'Let\'s have fun! 🎉', 'Woooo! 🎊',
+        'Nap time? 😴', '*stretches* 🐈', 'More pets please! 🥰'
+    ];
+
+    function updateMood() {
+        if (happiness > 80 && hunger < 30 && energy > 50) {
+            mood = 'happy'; catExpression = '😺';
+        } else if (happiness > 60) {
+            mood = 'content'; catExpression = '🐱';
+        } else if (hunger > 70) {
+            mood = 'hungry'; catExpression = '😿';
+            speechBubble = 'I\'m sooo hungry! Feed me! 🍕';
+        } else if (energy < 20) {
+            mood = 'sleepy'; catExpression = '😴';
+            speechBubble = 'So tired... need sleep... 💤';
+        } else if (happiness < 30) {
+            mood = 'sad'; catExpression = '😿';
+            speechBubble = 'I\'m sad... pet me please! 😢';
+        } else {
+            mood = 'normal'; catExpression = '🐱';
+        }
+    }
+
+    function clamp(v) { return Math.max(0, Math.min(100, v)); }
+
+    function petCat() {
+        if (animating) return;
+        animating = true;
+        happiness = clamp(happiness + 10);
+        energy = clamp(energy - 3);
+        coins += 1;
+        catExpression = '😻';
+        speechBubble = catSayings[Math.floor(Math.random() * catSayings.length)];
+        render();
+        setTimeout(() => { animating = false; updateMood(); render(); }, 1200);
+    }
+
+    function feedCat() {
+        if (animating) return;
+        animating = true;
+        hunger = clamp(hunger - 25);
+        happiness = clamp(happiness + 5);
+        energy = clamp(energy + 5);
+        coins += 2;
+        catExpression = '😸';
+        speechBubble = 'Yummy! That was delicious! 🐟😋';
+        render();
+        setTimeout(() => { animating = false; updateMood(); render(); }, 1200);
+    }
+
+    function playCat() {
+        if (animating) return;
+        if (energy < 10) {
+            speechBubble = 'Too tired to play... let me sleep first! 😴';
+            render();
+            return;
+        }
+        animating = true;
+        happiness = clamp(happiness + 15);
+        energy = clamp(energy - 15);
+        hunger = clamp(hunger + 10);
+        coins += 3;
+        catExpression = '🙀';
+        speechBubble = 'Wheeeee! So fun! 🎉🧶';
+        render();
+        setTimeout(() => {
+            catExpression = '😸';
+            speechBubble = 'That was awesome! Again! 🎊';
+            render();
+            setTimeout(() => { animating = false; updateMood(); render(); }, 800);
+        }, 800);
+    }
+
+    function sleepCat() {
+        if (animating) return;
+        animating = true;
+        energy = clamp(energy + 30);
+        hunger = clamp(hunger + 10);
+        catExpression = '😴';
+        speechBubble = 'Zzzzz... 💤💤💤';
+        render();
+        setTimeout(() => {
+            catExpression = '😺';
+            speechBubble = 'Ahh! I feel great now! ⚡';
+            energy = clamp(energy + 10);
+            animating = false;
+            updateMood();
+            render();
+        }, 2500);
+    }
+
+    function tickleCat() {
+        if (animating) return;
+        animating = true;
+        happiness = clamp(happiness + 8);
+        coins += 1;
+        catExpression = '😹';
+        speechBubble = 'HAHAHA stop it!! That tickles!! 😂🤣';
+        render();
+        setTimeout(() => {
+            catExpression = '😸';
+            speechBubble = 'Hehe... do it again! 😜';
+            render();
+            setTimeout(() => { animating = false; updateMood(); render(); }, 600);
+        }, 1000);
+    }
+
+    function changeOutfit() {
+        outfitIndex = (outfitIndex + 1) % outfits.length;
+        const name = outfitNames[outfitIndex];
+        speechBubble = outfits[outfitIndex] === 'none' ? 'Au naturel! 🐱' : `How do I look with my ${name}? ${outfits[outfitIndex]}✨`;
+        render();
+    }
+
+    function statBar(label, value, color) {
+        return `
+            <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
+                <span style="width:70px;font-size:0.8rem;color:#aaa;text-align:right;">${label}</span>
+                <div style="flex:1;height:14px;background:#1a1a2e;border-radius:7px;overflow:hidden;border:1px solid #333;">
+                    <div style="width:${value}%;height:100%;background:${color};border-radius:7px;transition:width 0.5s;${value < 25 ? 'animation:pulse 1s infinite;' : ''}"></div>
+                </div>
+                <span style="width:35px;font-size:0.8rem;color:${color};font-weight:bold;">${Math.round(value)}%</span>
+            </div>
+        `;
+    }
+
+    function render() {
+        const outfit = outfits[outfitIndex];
+        const outfitDisplay = outfit === 'none' ? '' : `<div style="font-size:2.5rem;position:absolute;top:-10px;left:50%;transform:translateX(-50%);">${outfit}</div>`;
+
+        const bgColor = mood === 'happy' ? '#0a2a1a' : mood === 'sad' ? '#2a0a1a' : mood === 'hungry' ? '#2a2a0a' : mood === 'sleepy' ? '#0a0a2a' : '#1a1a2e';
+
+        gameArea.innerHTML = `
+            <style>
+                @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+                @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+                @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+                .cat-btn { padding:12px 16px; font-size:1.5rem; background:#1a1a2e; border:2px solid #333; border-radius:12px; cursor:pointer; transition:all 0.2s; }
+                .cat-btn:hover { transform:scale(1.1); border-color:#00ff88; box-shadow:0 0 15px rgba(0,255,136,0.3); }
+                .cat-btn:active { transform:scale(0.95); }
+            </style>
+            <div style="text-align:center;padding:10px;max-width:400px;margin:0 auto;">
+                <!-- Speech Bubble -->
+                <div style="background:#1a1a2e;border:2px solid #00d4ff;border-radius:20px;padding:12px 18px;margin-bottom:10px;position:relative;box-shadow:0 0 15px rgba(0,212,255,0.2);min-height:40px;">
+                    <div style="color:#fff;font-size:1rem;font-family:Rajdhani,sans-serif;">${speechBubble}</div>
+                    <div style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:10px solid #00d4ff;"></div>
+                </div>
+
+                <!-- Cat -->
+                <div style="position:relative;display:inline-block;animation:${animating ? 'bounce 0.6s' : 'float 3s infinite'};margin:15px 0;">
+                    ${outfitDisplay}
+                    <div style="font-size:8rem;cursor:pointer;user-select:none;filter:drop-shadow(0 0 20px rgba(0,255,136,0.3));" onclick="window._talkingCatPet()">${catExpression}</div>
+                    <div style="font-size:0.7rem;color:#666;margin-top:-5px;">tap the cat to pet!</div>
+                </div>
+
+                <!-- Stats -->
+                <div style="background:${bgColor};border-radius:12px;padding:12px;margin:10px 0;border:1px solid #333;">
+                    ${statBar('😊 Happy', happiness, '#00ff88')}
+                    ${statBar('🍕 Hunger', 100 - hunger, hunger > 70 ? '#ff4444' : '#ffaa00')}
+                    ${statBar('⚡ Energy', energy, '#00d4ff')}
+                    <div style="text-align:center;margin-top:8px;color:#ffaa00;font-family:Orbitron,sans-serif;font-size:0.9rem;">🪙 ${coins} coins</div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;">
+                    <button class="cat-btn" onclick="window._talkingCatFeed()">🐟<br><span style="font-size:0.7rem;color:#aaa;">Feed</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatPlay()">🧶<br><span style="font-size:0.7rem;color:#aaa;">Play</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatSleep()">💤<br><span style="font-size:0.7rem;color:#aaa;">Sleep</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatTickle()">🤣<br><span style="font-size:0.7rem;color:#aaa;">Tickle</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatOutfit()">👔<br><span style="font-size:0.7rem;color:#aaa;">Outfit</span></button>
+                    <button class="cat-btn" onclick="window._talkingCatPet()">🐾<br><span style="font-size:0.7rem;color:#aaa;">Pet</span></button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Stats decay over time
+    statInterval = setInterval(() => {
+        if (animating) return;
+        hunger = clamp(hunger + 2);
+        happiness = clamp(happiness - 1);
+        energy = clamp(energy - 1);
+        updateMood();
+        render();
+    }, 5000);
+
+    // Expose functions
+    window._talkingCatPet = petCat;
+    window._talkingCatFeed = feedCat;
+    window._talkingCatPlay = playCat;
+    window._talkingCatSleep = sleepCat;
+    window._talkingCatTickle = tickleCat;
+    window._talkingCatOutfit = changeOutfit;
+
+    gameScoreDisplay.textContent = '';
+    updateMood();
+    render();
+
+    gameCleanup = () => {
+        if (statInterval) clearInterval(statInterval);
+        delete window._talkingCatPet;
+        delete window._talkingCatFeed;
+        delete window._talkingCatPlay;
+        delete window._talkingCatSleep;
+        delete window._talkingCatTickle;
+        delete window._talkingCatOutfit;
     };
 }
