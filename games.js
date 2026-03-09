@@ -141,7 +141,7 @@ function showGameOver(title, score, highKey, onRestart) {
 
 // ==================== 1. SNAKE ====================
 function initSnake() {
-    gameTitle.textContent = 'ðŸ Snake';
+    gameTitle.textContent = 'Snake';
     const SIZE = 20;
     const canvas = document.createElement('canvas');
     canvas.className = 'game-canvas';
@@ -294,7 +294,7 @@ function initSnake() {
 
 // ==================== 2. TIC TAC TOE ====================
 function initTicTacToe() {
-    gameTitle.textContent = 'âŒâ­• Tic Tac Toe';
+    gameTitle.textContent = 'Tic Tac Toe';
 
     let board, turn, gameOver;
     let wins = getHigh('ttt_wins'), losses = getHigh('ttt_losses'), draws = getHigh('ttt_draws');
@@ -312,7 +312,7 @@ function initTicTacToe() {
 
     const restartBtn = document.createElement('button');
     restartBtn.className = 'game-btn';
-    restartBtn.textContent = 'ðŸ”„ New Game';
+    restartBtn.textContent = 'New Game';
 
     gameArea.append(scores, status, boardDiv, restartBtn);
 
@@ -428,7 +428,7 @@ function initTicTacToe() {
 
 // ==================== 3. MEMORY MATCH ====================
 function initMemory() {
-    gameTitle.textContent = 'ðŸ§  Memory Match';
+    gameTitle.textContent = 'Memory Match';
 
     const emojis = ['ðŸš€','ðŸŽ¸','ðŸ¦Š','âš¡','ðŸŒˆ','ðŸŽ¯','ðŸ•','ðŸ’Ž'];
     let cards, flipped, matched, moves, timerStart, timerInterval, locked;
@@ -442,7 +442,7 @@ function initMemory() {
 
     const restartBtn = document.createElement('button');
     restartBtn.className = 'game-btn';
-    restartBtn.textContent = 'ðŸ”„ New Game';
+    restartBtn.textContent = 'New Game';
 
     gameArea.append(info, grid, restartBtn);
 
@@ -523,7 +523,7 @@ function initMemory() {
 
 // ==================== 4. ENDLESS RUNNER ====================
 function initRunner() {
-    gameTitle.textContent = 'ðŸƒ Endless Runner';
+    gameTitle.textContent = 'Endless Runner';
 
     const canvas = document.createElement('canvas');
     canvas.className = 'game-canvas';
@@ -679,7 +679,7 @@ function initRunner() {
 
 // ==================== 5. SLIDE PUZZLE ====================
 function initPuzzle() {
-    gameTitle.textContent = 'ðŸ§© Slide Puzzle';
+    gameTitle.textContent = 'Slide Puzzle';
 
     let tiles, emptyIdx, moves, solved;
 
@@ -763,7 +763,7 @@ function initPuzzle() {
 
 // ==================== 6. TARGET SHOOTER ====================
 function initShooter() {
-    gameTitle.textContent = 'ðŸŽ¯ Target Shooter';
+    gameTitle.textContent = 'Target Shooter';
 
     let score, timeLeft, running, spawnInterval, timerInterval;
 
@@ -849,7 +849,7 @@ function initShooter() {
 
 // ==================== 7. PONG ====================
 function initPong() {
-    gameTitle.textContent = 'ðŸ“ Pong';
+    gameTitle.textContent = 'Pong';
 
     const canvas = document.createElement('canvas');
     canvas.className = 'game-canvas';
@@ -1047,7 +1047,7 @@ function initPong() {
 
 // ==================== BINGO ====================
 function initBingo() {
-    gameTitle.textContent = 'ðŸŽ± Bingo';
+    gameTitle.textContent = 'Bingo';
 
     // Generate a random bingo card (5x5) with FREE center
     function generateCard() {
@@ -1284,7 +1284,7 @@ function initBingo() {
 
 // ==================== TALKING CAT (Mini Talking Tom) ====================
 function initTalkingCat() {
-    gameTitle.textContent = 'ðŸ± Talking Cat';
+    gameTitle.textContent = 'Talking Cat';
 
     let happiness = 70;
     let hunger = 50;
@@ -1514,7 +1514,7 @@ function initTalkingCat() {
 
 // ==================== HIDE & SEEK ====================
 function initHideSeek() {
-    gameTitle.textContent = 'ðŸ‘€ Hide & Seek';
+    gameTitle.textContent = 'Hide and Seek';
 
     const characters = ['ðŸ¸','ðŸ»','ðŸ±','ðŸ¶','ðŸ°','ðŸ¦Š','ðŸ¼','ðŸ¨','ðŸ¦','ðŸ¯','ðŸ®','ðŸ·','ðŸµ','ðŸ¦„','ðŸ²','ðŸ™','ðŸ¦€','ðŸ¢','ðŸ¦‹','ðŸ'];
     const hidingSpots = ['ðŸŒ³','ðŸª¨','ðŸ ','ðŸ“¦','ðŸ—‘ï¸','ðŸš—','â›º','ðŸ”ï¸','ðŸŒ»','ðŸŽª','ðŸ§±','ðŸª£','ðŸ›–','ðŸ—ï¸','ðŸŽ','ðŸ—„ï¸','ðŸšª','ðŸª´','ðŸŽ­','ðŸº'];
@@ -1670,7 +1670,7 @@ function initHideSeek() {
 
 // ==================== RACING ====================
 function initRacing() {
-    gameTitle.textContent = 'ðŸŽï¸ Racing';
+    gameTitle.textContent = 'Racing';
 
     const canvas = document.createElement('canvas');
     canvas.width = 320;
@@ -1914,7 +1914,7 @@ function initRacing() {
     ctx.font = 'bold 20px Orbitron, sans-serif';
     ctx.fillStyle = '#00ff88';
     ctx.textAlign = 'center';
-    ctx.fillText('ðŸŽï¸ Ready to Race?', W/2, H/2);
+    ctx.fillText('Ready to Race?', W/2, H/2);
 
     gameScoreDisplay.textContent = 'High: ' + getHigh('racing');
 
@@ -1927,7 +1927,7 @@ function initRacing() {
 
 // ==================== SPOT THE DIFFERENCE ====================
 function initSpotDiff() {
-    gameTitle.textContent = 'ðŸ” Spot the Difference';
+    gameTitle.textContent = 'Spot the Difference';
 
     // Scenes are emoji grids. We generate a grid then change some emojis for the "different" version.
     const emojiSets = [
@@ -2098,7 +2098,7 @@ function initSpotDiff() {
 
 // ==================== TAG ====================
 function initTag() {
-    gameTitle.textContent = 'ðŸƒ Tag';
+    gameTitle.textContent = 'Tag';
 
     const canvas = document.createElement('canvas');
     canvas.width = 320;
@@ -2444,7 +2444,7 @@ function initTag() {
 
 // ==================== GEOMETRY DASH ====================
 function initGeoDash() {
-    gameTitle.textContent = 'ðŸ”º Geometry Dash';
+    gameTitle.textContent = 'Geometry Dash';
 
     const canvas = document.createElement('canvas');
     canvas.width = 400;
@@ -2831,7 +2831,7 @@ function initGeoDash() {
 
 // ==================== KING SHOT ====================
 function initKingShot() {
-    gameTitle.textContent = 'ðŸ‘‘ King Shot';
+    gameTitle.textContent = 'King Shot';
 
     const canvas = document.createElement('canvas');
     canvas.width = 380;
@@ -3239,7 +3239,7 @@ function initKingShot() {
 
 // ==================== MINICRAFT (Mini Minecraft) ====================
 function initMiniCraft() {
-    gameTitle.textContent = 'â›ï¸ MiniCraft';
+    gameTitle.textContent = 'MiniCraft';
 
     const TILE = 24;
     const COLS = 16;
@@ -3627,7 +3627,7 @@ function initMiniCraft() {
 
 // ==================== 99 NIGHTS IN THE FOREST ====================
 function initForest99() {
-    gameTitle.textContent = 'ðŸŒ² 99 Nights';
+    gameTitle.textContent = '99 Nights';
 
     const canvas = document.createElement('canvas');
     canvas.width = 360;
@@ -4087,7 +4087,7 @@ function initForest99() {
 
 // ==================== BROOKHAVEN ====================
 function initBrookhaven() {
-    gameTitle.textContent = 'ðŸ˜ï¸ Brookhaven';
+    gameTitle.textContent = 'Brookhaven';
 
     const TILE = 20;
     const VIEW_W = 18;
@@ -4339,7 +4339,7 @@ function initBrookhaven() {
 
 // ==================== GORILLA TAG ====================
 function initGorillaTag() {
-    gameTitle.textContent = 'ðŸ¦ Gorilla Tag';
+    gameTitle.textContent = 'Gorilla Tag';
 
     const canvas = document.createElement('canvas');
     canvas.width = 380;
@@ -4786,7 +4786,7 @@ function initGorillaTag() {
 
 // ==================== FNAF (Freddy's Pizzeria) ====================
 function initFNAF() {
-    gameTitle.textContent = 'ðŸ» Freddy\'s Pizzeria';
+    gameTitle.textContent = 'Freddy\'s Pizzeria';
 
     gameArea.innerHTML = `
         <div id="fnaf-game" style="max-width:380px;margin:0 auto;text-align:center;font-family:Rajdhani,sans-serif;">
@@ -5124,7 +5124,7 @@ function initFNAF() {
 
 // ==================== SCARY SHAWARMA ====================
 function initScaryShawarma() {
-    gameTitle.textContent = 'ðŸŒ¯ Scary Shawarma';
+    gameTitle.textContent = 'Scary Shawarma';
 
     const canvas = document.createElement('canvas');
     canvas.width = 360;
@@ -5565,7 +5565,7 @@ function initScaryShawarma() {
 
 // ==================== 21. RED LIGHT GREEN LIGHT ====================
 function initRedGreenLight() {
-    gameTitle.textContent = 'ðŸš¦ Red Light Green Light';
+    gameTitle.textContent = 'Red Light Green Light';
 
     const canvas = document.createElement('canvas');
     canvas.width = 360;
@@ -6133,7 +6133,7 @@ function initRedGreenLight() {
 
 // ==================== HIT THE TARGET (Archery) ====================
 function initHitTarget() {
-    gameTitle.textContent = '🏹 Hit the Target';
+    gameTitle.textContent = 'Hit the Target';
     const best = getHigh('hittarget');
     gameScoreDisplay.textContent = best ? 'Best: ' + best : '';
 
@@ -6585,7 +6585,7 @@ function initHitTarget() {
 
 // ==================== LUDO BOARD GAME ====================
 function initLudo() {
-    gameTitle.textContent = 'ðŸŽ² Ludo';
+    gameTitle.textContent = 'Ludo';
     gameScoreDisplay.textContent = 'Wins: ' + getHigh('ludo');
 
     const canvas = document.createElement('canvas');
@@ -7426,7 +7426,7 @@ function initLudo() {
 
 // ==================== FOUR IN A ROW (Connect 4) ====================
 function initConnect4() {
-    gameTitle.textContent = '🔴 Four in a Row';
+    gameTitle.textContent = 'Four in a Row';
     const best = getHigh('connect4');
     gameScoreDisplay.textContent = best ? 'Wins: ' + best : '';
 
