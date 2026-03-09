@@ -3,21 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AK Games — Play. Compete. Have Fun!</title>
+    <title>AK Games | 29 Free Browser Games for Kids | Play Online Now</title>
+    <meta name="description" content="AK Games is a free collection of 29 browser games for kids. Play Snake, Chess, Ludo, Escape the Granny, Basketball, Soccer, Football, Red Light Green Light, and more. No downloads, no ads. Made by a 7 year old game developer! Part of MindForgeKids.io.">
+    <meta name="keywords" content="free kids games, browser games for kids, online games no download, kids game website, play games free, snake game, chess for kids, ludo online, escape granny game, basketball game, soccer game, football game, red light green light game, connect 4 online, memory match, endless runner, geometry dash, gorilla tag, hide and seek game, target shooter, AK Games, MindForgeKids, STEM games for kids">
+    <meta name="author" content="Maaz Sheikh">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://mindforgekids.io/ak">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://mindforgekids.io/ak">
+    <meta property="og:title" content="AK Games | 29 Free Browser Games for Kids">
+    <meta property="og:description" content="Play 29 free browser games: Snake, Chess, Ludo, Escape the Granny, Basketball, Soccer, and more. No downloads, no ads. Made by a 7 year old!">
+    <meta property="og:image" content="https://ms170888.github.io/akgames/logo.jpg">
+    <meta property="og:site_name" content="MindForgeKids">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://mindforgekids.io/ak">
+    <meta name="twitter:title" content="AK Games | 29 Free Browser Games for Kids">
+    <meta name="twitter:description" content="Play 29 free browser games: Snake, Chess, Ludo, Escape the Granny, Basketball, Soccer, and more. No downloads. Made by a 7 year old!">
+    <meta name="twitter:image" content="https://ms170888.github.io/akgames/logo.jpg">
+
+    <!-- Structured Data / JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "AK Games",
+        "url": "https://mindforgekids.io/ak",
+        "description": "29 free browser games for kids. No downloads, no ads.",
+        "author": {
+            "@type": "Person",
+            "name": "Maaz Sheikh",
+            "description": "7 year old game developer"
+        },
+        "isPartOf": {
+            "@type": "WebSite",
+            "name": "MindForgeKids",
+            "url": "https://mindforgekids.io"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "AK Games Collection",
+        "description": "29 free browser games for kids",
+        "numberOfItems": 29,
+        "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "Snake", "description": "Classic snake game. Eat, grow, survive!"},
+            {"@type": "ListItem", "position": 2, "name": "Tic Tac Toe", "description": "Beat the computer at Tic Tac Toe!"},
+            {"@type": "ListItem", "position": 3, "name": "Memory Match", "description": "Find all the matching pairs!"},
+            {"@type": "ListItem", "position": 4, "name": "Chess", "description": "Play chess against AI with 3 difficulty levels!"},
+            {"@type": "ListItem", "position": 5, "name": "Ludo", "description": "Classic Ludo board game against AI!"},
+            {"@type": "ListItem", "position": 6, "name": "Escape the Granny", "description": "3D first-person stealth game with security cameras!"},
+            {"@type": "ListItem", "position": 7, "name": "Basketball", "description": "Shoot hoops and score points!"},
+            {"@type": "ListItem", "position": 8, "name": "Soccer", "description": "Penalty kick game against a goalkeeper!"},
+            {"@type": "ListItem", "position": 9, "name": "Football", "description": "Quarterback throwing game!"},
+            {"@type": "ListItem", "position": 10, "name": "Red Light Green Light", "description": "Stop or you're out!"}
+        ]
+    }
+    </script>
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- MindForgeKids top bar -->
+    <div style="background:#12122a;border-bottom:2px solid #00ff88;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:relative;z-index:100;">
+        <a href="https://mindforgekids.io" style="color:#00ff88;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:18px;">🧠</span> MindForgeKids.io
+        </a>
+        <div style="display:flex;gap:12px;align-items:center;">
+            <a href="https://mindforgekids.io/#games" style="color:#aaa;text-decoration:none;font-family:Rajdhani,sans-serif;font-size:13px;">STEM Games</a>
+            <a href="https://mindforgekids.io/academy.html" style="color:#aaa;text-decoration:none;font-family:Rajdhani,sans-serif;font-size:13px;">Academy</a>
+            <a href="https://mindforgeacademy.etsy.com" style="color:#aaa;text-decoration:none;font-family:Rajdhani,sans-serif;font-size:13px;" target="_blank" rel="noopener">Etsy Shop</a>
+        </div>
+    </div>
+
     <!-- Animated background particles -->
     <canvas id="particles-bg"></canvas>
 
     <!-- MAIN MENU -->
     <div id="main-menu">
         <header>
-            <img src="logo.jpg" alt="AK Games Logo" style="width:150px;height:150px;border-radius:50%;border:3px solid #00ff88;box-shadow:0 0 30px rgba(0,255,136,0.5);margin-bottom:15px;object-fit:cover;">
+            <img src="logo.jpg" alt="AK Games - Free Browser Games for Kids" style="width:150px;height:150px;border-radius:50%;border:3px solid #00ff88;box-shadow:0 0 30px rgba(0,255,136,0.5);margin-bottom:15px;object-fit:cover;">
             <h1 class="logo">AK <span class="glow-text">Games</span></h1>
             <p class="tagline">Play. Compete. Have Fun!</p>
+            <p style="color:#888;font-family:Rajdhani,sans-serif;font-size:13px;margin-top:4px;">A <a href="https://mindforgekids.io" style="color:#00ff88;text-decoration:none;">MindForgeKids.io</a> project | Made by Maaz, age 7</p>
         </header>
         <div class="games-grid">
             <div class="game-card" onclick="launchGame('snake')">
@@ -195,8 +272,18 @@
                 <button class="play-btn">▶ PLAY</button>
             </div>
         </div>
-        <footer>
-            <p>Made with ❤️ for Maaz | AK Games 2025</p>
+        <footer style="padding:20px 0;text-align:center;">
+            <p style="margin-bottom:8px;">Made with ❤️ by Maaz Sheikh, age 7 | AK Games 2025</p>
+            <p style="margin-bottom:12px;">
+                <a href="https://mindforgekids.io" style="color:#00ff88;text-decoration:none;font-weight:600;">🧠 MindForgeKids.io</a>
+                <span style="color:#555;margin:0 8px;">|</span>
+                <a href="https://mindforgekids.io/#games" style="color:#00d4ff;text-decoration:none;">STEM Games</a>
+                <span style="color:#555;margin:0 8px;">|</span>
+                <a href="https://mindforgekids.io/academy.html" style="color:#b44aff;text-decoration:none;">Academy</a>
+                <span style="color:#555;margin:0 8px;">|</span>
+                <a href="https://mindforgeacademy.etsy.com" target="_blank" rel="noopener" style="color:#ff44aa;text-decoration:none;">Etsy Shop</a>
+            </p>
+            <p style="color:#555;font-size:12px;">Part of the <a href="https://mindforgekids.io" style="color:#00ff88;text-decoration:none;">MindForgeKids</a> learning ecosystem. Free STEM games, printable curriculum, and more for kids ages 5 to 14.</p>
         </footer>
     </div>
 
