@@ -96,6 +96,7 @@ function launchGame(name) {
  case 'football': initFootball(); break;
  case 'granny': initGranny(); break;
  case 'blockblast': initBlockBlast(); break;
+ case 'tvhorror': initTVHorror(); break;
 
  }
 }
@@ -11704,4 +11705,440 @@ function initBlockBlast() {
  spawnPieces();
 
  gameCleanup = () => {};
+}
+
+// ==================== TV HORROR ====================
+function initTVHorror() {
+ const area = document.getElementById('game-area');
+ const scoreDisplay = document.getElementById('game-score-display');
+ area.innerHTML = '';
+ area.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:0;position:relative;overflow:hidden;background:#000;width:100%;height:100%;';
+
+ let running = false;
+ let frameId = 0;
+
+ // Canvas
+ const canvas = document.createElement('canvas');
+ const W = Math.min(window.innerWidth, 600);
+ const H = Math.min(window.innerHeight - 120, 400);
+ canvas.width = W;
+ canvas.height = H;
+ canvas.style.cssText = 'display:block;background:#000;border-radius:4px;touch-action:none;';
+ area.appendChild(canvas);
+ const ctx = canvas.getContext('2d');
+
+ // Mobile controls
+ const controls = document.createElement('div');
+ controls.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px;';
+ const btnStyle = 'padding:12px 18px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;font-size:18px;cursor:pointer;user-select:none;-webkit-user-select:none;';
+ ['⬅','⬆','⬇','➡'].forEach(label => {
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.style.cssText = btnStyle;
+  controls.appendChild(b);
+ });
+ area.appendChild(controls);
+ const [btnL, btnU, btnD, btnR] = controls.children;
+
+ // Map: 1=wall, 2=TV room, 3=exit door
+ // Player starts in TV room watching horror, enemy stalks from behind
+ const MAP_W = 16;
+ const MAP_H = 16;
+ const map = [
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,
+  1,0,0,2,2,0,1,0,0,0,1,1,0,0,0,1,
+  1,0,0,2,2,0,0,0,0,0,1,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,
+  1,1,1,0,0,1,1,1,0,1,1,0,0,1,1,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,1,
+  1,0,0,1,0,0,0,0,0,0,0,0,1,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,
+  1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,
+  1,0,0,0,0,0,1,0,0,1,0,0,0,3,0,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+ ];
+
+ function getMap(x, y) { return map[y * MAP_W + x] || 1; }
+
+ // Player in TV room
+ let px = 3.5, py = 4.5, pa = 0;
+ let speed = 0.04;
+
+ // Enemy
+ let ex = 13, ey = 1, eAngle = 0;
+ let enemySpeed = 0.018;
+ let enemyAlive = true;
+
+ // Game state
+ let escaped = false;
+ let jumpscared = false;
+ let timer = 0;
+ let startTime = Date.now();
+ let tvFlicker = 0;
+
+ // Jumpscare image
+ const scareImg = new Image();
+ scareImg.src = 'jumpscare.jpg';
+
+ // Keys
+ const keys = { up: false, down: false, left: false, right: false };
+ function onKeyDown(e) {
+  switch (e.key) {
+   case 'ArrowUp': case 'w': case 'W': keys.up = true; break;
+   case 'ArrowDown': case 's': case 'S': keys.down = true; break;
+   case 'ArrowLeft': case 'a': case 'A': keys.left = true; break;
+   case 'ArrowRight': case 'd': case 'D': keys.right = true; break;
+  }
+ }
+ function onKeyUp(e) {
+  switch (e.key) {
+   case 'ArrowUp': case 'w': case 'W': keys.up = false; break;
+   case 'ArrowDown': case 's': case 'S': keys.down = false; break;
+   case 'ArrowLeft': case 'a': case 'A': keys.left = false; break;
+   case 'ArrowRight': case 'd': case 'D': keys.right = false; break;
+  }
+ }
+ window.addEventListener('keydown', onKeyDown);
+ window.addEventListener('keyup', onKeyUp);
+
+ // Mobile button events
+ function addMobileBtn(btn, key) {
+  btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+  btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+  btn.addEventListener('mousedown', () => keys[key] = true);
+  btn.addEventListener('mouseup', () => keys[key] = false);
+  btn.addEventListener('mouseleave', () => keys[key] = false);
+ }
+ addMobileBtn(btnL, 'left');
+ addMobileBtn(btnU, 'up');
+ addMobileBtn(btnD, 'down');
+ addMobileBtn(btnR, 'right');
+
+ // Audio context for creepy sounds
+ let audioCtx = null;
+ try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+
+ function playCreepySound() {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.value = 60 + Math.random() * 40;
+  gain.gain.value = 0.08;
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.5);
+ }
+
+ function playJumpscareSound() {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.value = 200;
+  osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+  gain.gain.value = 0.4;
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 1);
+ }
+
+ function movePlayer() {
+  const moveSpeed = speed;
+  const turnSpeed = 0.04;
+  if (keys.left) pa -= turnSpeed;
+  if (keys.right) pa += turnSpeed;
+  let dx = 0, dy = 0;
+  if (keys.up) { dx = Math.cos(pa) * moveSpeed; dy = Math.sin(pa) * moveSpeed; }
+  if (keys.down) { dx = -Math.cos(pa) * moveSpeed * 0.6; dy = -Math.sin(pa) * moveSpeed * 0.6; }
+  // Collision
+  const nx = px + dx, ny = py + dy;
+  const margin = 0.2;
+  if (getMap(Math.floor(nx + margin * Math.sign(dx)), Math.floor(py)) === 0 ||
+      getMap(Math.floor(nx + margin * Math.sign(dx)), Math.floor(py)) === 2 ||
+      getMap(Math.floor(nx + margin * Math.sign(dx)), Math.floor(py)) === 3) px = nx;
+  if (getMap(Math.floor(px), Math.floor(ny + margin * Math.sign(dy))) === 0 ||
+      getMap(Math.floor(px), Math.floor(ny + margin * Math.sign(dy))) === 2 ||
+      getMap(Math.floor(px), Math.floor(ny + margin * Math.sign(dy))) === 3) py = ny;
+
+  // Check exit
+  if (getMap(Math.floor(px), Math.floor(py)) === 3) {
+   escaped = true;
+  }
+ }
+
+ function moveEnemy() {
+  if (!enemyAlive || escaped || jumpscared) return;
+  // Simple chase AI
+  const dx = px - ex;
+  const dy = py - ey;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 0.5) {
+   // CAUGHT - jumpscare!
+   jumpscared = true;
+   playJumpscareSound();
+   return;
+  }
+  // Move toward player
+  const ang = Math.atan2(dy, dx);
+  const nx = ex + Math.cos(ang) * enemySpeed;
+  const ny = ey + Math.sin(ang) * enemySpeed;
+  if (getMap(Math.floor(nx), Math.floor(ey)) !== 1) ex = nx;
+  if (getMap(Math.floor(ex), Math.floor(ny)) !== 1) ey = ny;
+  eAngle = ang;
+
+  // Speed up over time
+  enemySpeed = 0.018 + (Date.now() - startTime) / 100000;
+  if (enemySpeed > 0.038) enemySpeed = 0.038;
+
+  // Random creepy sound
+  if (dist < 4 && Math.random() < 0.01) playCreepySound();
+ }
+
+ function castRays() {
+  const FOV = Math.PI / 3;
+  const numRays = W;
+  const halfH = H / 2;
+
+  // Ceiling
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, W, halfH);
+  // Floor
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(0, halfH, W, halfH);
+
+  const depthBuf = [];
+
+  for (let i = 0; i < numRays; i++) {
+   const rayAngle = pa - FOV / 2 + (i / numRays) * FOV;
+   const cos = Math.cos(rayAngle);
+   const sin = Math.sin(rayAngle);
+   let dist = 0;
+   let hitType = 0;
+   let side = 0;
+
+   // DDA raycasting
+   const stepSize = 0.02;
+   for (let d = 0; d < 16; d += stepSize) {
+    const rx = px + cos * d;
+    const ry = py + sin * d;
+    const mx = Math.floor(rx);
+    const my = Math.floor(ry);
+    const cell = getMap(mx, my);
+    if (cell === 1) {
+     dist = d * Math.cos(rayAngle - pa); // fisheye correction
+     hitType = 1;
+     side = Math.abs(rx - mx) < 0.05 || Math.abs(rx - mx) > 0.95 ? 0 : 1;
+     break;
+    }
+    if (cell === 2) {
+     dist = d * Math.cos(rayAngle - pa);
+     hitType = 2;
+     side = Math.abs(rx - mx) < 0.05 || Math.abs(rx - mx) > 0.95 ? 0 : 1;
+     break;
+    }
+    if (cell === 3) {
+     dist = d * Math.cos(rayAngle - pa);
+     hitType = 3;
+     side = Math.abs(rx - mx) < 0.05 || Math.abs(rx - mx) > 0.95 ? 0 : 1;
+     break;
+    }
+   }
+
+   depthBuf[i] = dist || 16;
+
+   if (dist > 0) {
+    const wallH = Math.min(H * 2, (H / dist) * 0.8);
+    const top = halfH - wallH / 2;
+    const shade = Math.max(0.1, 1 - dist / 8);
+
+    if (hitType === 1) {
+     // Regular wall
+     const r = Math.floor(40 * shade);
+     const g = Math.floor(30 * shade);
+     const b = Math.floor(50 * shade);
+     ctx.fillStyle = side === 0 ? 'rgb(' + r + ',' + g + ',' + b + ')' : 'rgb(' + Math.floor(r*0.7) + ',' + Math.floor(g*0.7) + ',' + Math.floor(b*0.7) + ')';
+    } else if (hitType === 2) {
+     // TV room walls - flickering blue/white
+     tvFlicker = (tvFlicker + 1) % 30;
+     const flk = tvFlicker < 15 ? 1.2 : 0.8;
+     const r = Math.floor(20 * shade * flk);
+     const g = Math.floor(40 * shade * flk);
+     const b = Math.floor(80 * shade * flk);
+     ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+    } else if (hitType === 3) {
+     // Exit door - green
+     const r = Math.floor(20 * shade);
+     const g = Math.floor(180 * shade);
+     const b = Math.floor(40 * shade);
+     ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+    }
+
+    ctx.fillRect(i, top, 1, wallH);
+   }
+  }
+
+  // Render enemy as sprite
+  const edx = ex - px;
+  const edy = ey - py;
+  const eDist = Math.sqrt(edx * edx + edy * edy);
+  const eAng = Math.atan2(edy, edx) - pa;
+  // Normalize angle
+  let normAng = eAng;
+  while (normAng < -Math.PI) normAng += Math.PI * 2;
+  while (normAng > Math.PI) normAng -= Math.PI * 2;
+
+  if (Math.abs(normAng) < FOV / 2 && eDist > 0.3) {
+   const screenX = W / 2 + (normAng / (FOV / 2)) * (W / 2);
+   const spriteH = Math.min(H * 2, (H / eDist) * 0.7);
+   const spriteW = spriteH * 0.5;
+   const top = H / 2 - spriteH / 2;
+
+   // Only draw if not behind wall
+   const rayIdx = Math.floor(screenX);
+   if (rayIdx >= 0 && rayIdx < W && eDist < depthBuf[rayIdx]) {
+    const shade = Math.max(0.15, 1 - eDist / 6);
+    // Draw creepy shadow figure
+    ctx.fillStyle = 'rgba(0,0,0,' + (shade * 0.9) + ')';
+    ctx.fillRect(screenX - spriteW / 2, top, spriteW, spriteH);
+    // Red eyes
+    const eyeY = top + spriteH * 0.2;
+    const eyeSize = Math.max(2, spriteW * 0.12);
+    ctx.fillStyle = 'rgba(255,0,0,' + shade + ')';
+    ctx.beginPath();
+    ctx.arc(screenX - spriteW * 0.15, eyeY, eyeSize, 0, Math.PI * 2);
+    ctx.arc(screenX + spriteW * 0.15, eyeY, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+   }
+  }
+
+  // HUD
+  timer = ((Date.now() - startTime) / 1000).toFixed(1);
+  ctx.fillStyle = '#fff';
+  ctx.font = '14px monospace';
+  ctx.fillText('🚪 Find the GREEN exit door!', 10, 20);
+  ctx.fillStyle = '#ff4444';
+  ctx.fillText('⚠ Something is chasing you...', 10, 38);
+
+  // Minimap
+  const mmS = 3;
+  const mmX = W - MAP_W * mmS - 8;
+  const mmY = 8;
+  ctx.globalAlpha = 0.5;
+  for (let y = 0; y < MAP_H; y++) {
+   for (let x = 0; x < MAP_W; x++) {
+    const cell = getMap(x, y);
+    ctx.fillStyle = cell === 1 ? '#444' : cell === 2 ? '#004' : cell === 3 ? '#0a0' : '#111';
+    ctx.fillRect(mmX + x * mmS, mmY + y * mmS, mmS, mmS);
+   }
+  }
+  // Player dot
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(mmX + px * mmS - 1, mmY + py * mmS - 1, 3, 3);
+  // Enemy dot
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(mmX + ex * mmS - 1, mmY + ey * mmS - 1, 3, 3);
+  ctx.globalAlpha = 1;
+ }
+
+ function showJumpscare() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  if (scareImg.complete) {
+   // Draw image filling the canvas
+   const imgRatio = scareImg.width / scareImg.height;
+   const canvasRatio = W / H;
+   let dw, dh, dx, dy;
+   if (imgRatio > canvasRatio) {
+    dh = H; dw = H * imgRatio; dx = (W - dw) / 2; dy = 0;
+   } else {
+    dw = W; dh = W / imgRatio; dx = 0; dy = (H - dh) / 2;
+   }
+   // Shake effect
+   const shake = Math.random() * 10 - 5;
+   ctx.drawImage(scareImg, dx + shake, dy + shake, dw, dh);
+  }
+  ctx.fillStyle = 'rgba(255,0,0,0.3)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#ff0000';
+  ctx.font = 'bold 36px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('IT GOT YOU!', W / 2, H - 40);
+  ctx.font = '16px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Press SPACE or tap to try again', W / 2, H - 16);
+  ctx.textAlign = 'left';
+ }
+
+ function showEscape() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#00ff88';
+  ctx.font = 'bold 40px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('YOU ESCAPED! 🎉', W / 2, H / 2 - 20);
+  ctx.font = '18px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Time: ' + timer + 's', W / 2, H / 2 + 20);
+  ctx.fillText('Press SPACE or tap to play again', W / 2, H / 2 + 50);
+  ctx.textAlign = 'left';
+ }
+
+ function resetGame() {
+  px = 3.5; py = 4.5; pa = 0;
+  ex = 13; ey = 1;
+  enemySpeed = 0.018;
+  escaped = false;
+  jumpscared = false;
+  startTime = Date.now();
+ }
+
+ function onRestart(e) {
+  if (e.type === 'keydown' && e.key !== ' ') return;
+  if (escaped || jumpscared) {
+   resetGame();
+  }
+ }
+ window.addEventListener('keydown', onRestart);
+ canvas.addEventListener('click', () => {
+  if (escaped || jumpscared) resetGame();
+ });
+
+ function update() {
+  if (!running) return;
+  if (!escaped && !jumpscared) {
+   movePlayer();
+   moveEnemy();
+   castRays();
+  } else if (jumpscared) {
+   showJumpscare();
+  } else if (escaped) {
+   showEscape();
+  }
+
+  scoreDisplay.innerHTML = '<span style="color:#ff4444;">⏱ ' + timer + 's</span> | <span style="color:' + (escaped ? '#00ff88' : jumpscared ? '#ff0000' : '#ffeb3b') + ';">' + (escaped ? 'ESCAPED!' : jumpscared ? 'CAUGHT!' : 'RUN!') + '</span>';
+
+  frameId = requestAnimationFrame(update);
+ }
+
+ running = true;
+ update();
+
+ gameCleanup = () => {
+  running = false;
+  cancelAnimationFrame(frameId);
+  window.removeEventListener('keydown', onKeyDown);
+  window.removeEventListener('keyup', onKeyUp);
+  window.removeEventListener('keydown', onRestart);
+  if (audioCtx) { try { audioCtx.close(); } catch(e) {} }
+ };
 }
