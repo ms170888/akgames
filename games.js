@@ -95,6 +95,7 @@ function launchGame(name) {
  case 'soccer': initSoccer(); break;
  case 'football': initFootball(); break;
  case 'granny': initGranny(); break;
+ case 'blockblast': initBlockBlast(); break;
 
  }
 }
@@ -11453,4 +11454,254 @@ function initGranny() {
  window.removeEventListener('keyup', onKeyUp);
  if (audioCtx) { try { audioCtx.close(); } catch(e) {} }
  };
+}
+
+// ==================== BLOCK BLAST ====================
+function initBlockBlast() {
+ const area = document.getElementById('game-area');
+ const scoreDisplay = document.getElementById('game-score-display');
+ const GRID = 8;
+ const CELL = Math.min(Math.floor((Math.min(window.innerWidth, 500) - 40) / GRID), 50);
+ let board = [];
+ let score = 0;
+ let gameOver = false;
+ let selectedPiece = null;
+ let pieces = [];
+ let highScore = parseInt(localStorage.getItem('bb_high') || '0');
+
+ const COLORS = ['#ff4444','#44aaff','#44ff88','#ffaa00','#ff44ff','#00ddff','#ff6644'];
+
+ const SHAPES = [
+  [[1]],
+  [[1,1]],
+  [[1],[1]],
+  [[1,1,1]],
+  [[1],[1],[1]],
+  [[1,1],[1,1]],
+  [[1,1,1],[1,0,0]],
+  [[1,1,1],[0,0,1]],
+  [[1,0],[1,1]],
+  [[0,1],[1,1]],
+  [[1,1,1,1]],
+  [[1],[1],[1],[1]],
+  [[1,1],[0,1],[0,1]],
+  [[1,1],[1,0],[1,0]],
+  [[1,1,1],[0,1,0]],
+  [[1,0],[1,1],[1,0]],
+  [[1,1,0],[0,1,1]],
+  [[0,1,1],[1,1,0]],
+  [[1,1,1],[1,0,0],[1,0,0]],
+  [[1,1,1],[0,0,1],[0,0,1]],
+ ];
+
+ area.innerHTML = '';
+ area.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:10px;touch-action:none;user-select:none;';
+ scoreDisplay.innerHTML = '<span style="color:#ffeb3b;font-weight:700;">Score: 0</span> | <span style="color:#aaa;">Best: ' + highScore + '</span>';
+
+ // Build board
+ for (let r = 0; r < GRID; r++) {
+  board[r] = [];
+  for (let c = 0; c < GRID; c++) board[r][c] = 0;
+ }
+
+ // Grid element
+ const gridEl = document.createElement('div');
+ gridEl.style.cssText = 'display:grid;grid-template-columns:repeat(' + GRID + ',' + CELL + 'px);grid-template-rows:repeat(' + GRID + ',' + CELL + 'px);gap:2px;margin-bottom:16px;background:rgba(255,255,255,0.05);padding:4px;border-radius:8px;';
+ area.appendChild(gridEl);
+
+ const cells = [];
+ for (let r = 0; r < GRID; r++) {
+  cells[r] = [];
+  for (let c = 0; c < GRID; c++) {
+   const cell = document.createElement('div');
+   cell.style.cssText = 'width:' + CELL + 'px;height:' + CELL + 'px;background:rgba(255,255,255,0.08);border-radius:4px;transition:background 0.15s;';
+   cell.dataset.r = r;
+   cell.dataset.c = c;
+   gridEl.appendChild(cell);
+   cells[r][c] = cell;
+
+   cell.addEventListener('click', () => placePiece(r, c));
+   cell.addEventListener('mouseenter', () => previewPiece(r, c));
+   cell.addEventListener('mouseleave', clearPreview);
+  }
+ }
+
+ // Piece tray
+ const tray = document.createElement('div');
+ tray.id = 'bb-tray';
+ tray.style.cssText = 'display:flex;gap:16px;justify-content:center;flex-wrap:wrap;min-height:80px;align-items:center;';
+ area.appendChild(tray);
+
+ function randomPiece() {
+  const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+  return { shape, color };
+ }
+
+ function spawnPieces() {
+  pieces = [randomPiece(), randomPiece(), randomPiece()];
+  selectedPiece = null;
+  renderTray();
+ }
+
+ function renderTray() {
+  tray.innerHTML = '';
+  pieces.forEach((p, i) => {
+   if (!p) { tray.appendChild(document.createElement('div')); return; }
+   const wrap = document.createElement('div');
+   wrap.style.cssText = 'cursor:pointer;padding:6px;border-radius:8px;border:2px solid ' + (selectedPiece === i ? '#fff' : 'transparent') + ';background:rgba(255,255,255,0.05);';
+   const rows = p.shape.length;
+   const cols = p.shape[0].length;
+   const mini = Math.min(14, Math.floor(60 / Math.max(rows, cols)));
+   const g = document.createElement('div');
+   g.style.cssText = 'display:grid;grid-template-columns:repeat(' + cols + ',' + mini + 'px);gap:1px;';
+   for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+     const b = document.createElement('div');
+     b.style.cssText = 'width:' + mini + 'px;height:' + mini + 'px;border-radius:2px;background:' + (p.shape[r][c] ? p.color : 'transparent') + ';';
+     g.appendChild(b);
+    }
+   }
+   wrap.appendChild(g);
+   wrap.addEventListener('click', (e) => { e.stopPropagation(); selectedPiece = i; renderTray(); });
+   tray.appendChild(wrap);
+  });
+ }
+
+ function canPlace(shape, sr, sc) {
+  for (let r = 0; r < shape.length; r++) {
+   for (let c = 0; c < shape[0].length; c++) {
+    if (!shape[r][c]) continue;
+    const nr = sr + r, nc = sc + c;
+    if (nr < 0 || nr >= GRID || nc < 0 || nc >= GRID || board[nr][nc]) return false;
+   }
+  }
+  return true;
+ }
+
+ function previewPiece(sr, sc) {
+  clearPreview();
+  if (selectedPiece === null || !pieces[selectedPiece]) return;
+  const p = pieces[selectedPiece];
+  const ok = canPlace(p.shape, sr, sc);
+  for (let r = 0; r < p.shape.length; r++) {
+   for (let c = 0; c < p.shape[0].length; c++) {
+    if (!p.shape[r][c]) continue;
+    const nr = sr + r, nc = sc + c;
+    if (nr >= 0 && nr < GRID && nc >= 0 && nc < GRID) {
+     cells[nr][nc].style.background = ok ? (p.color + '88') : 'rgba(255,0,0,0.3)';
+    }
+   }
+  }
+ }
+
+ function clearPreview() {
+  for (let r = 0; r < GRID; r++)
+   for (let c = 0; c < GRID; c++)
+    cells[r][c].style.background = board[r][c] ? board[r][c] : 'rgba(255,255,255,0.08)';
+ }
+
+ function placePiece(sr, sc) {
+  if (gameOver || selectedPiece === null || !pieces[selectedPiece]) return;
+  const p = pieces[selectedPiece];
+  if (!canPlace(p.shape, sr, sc)) return;
+
+  for (let r = 0; r < p.shape.length; r++) {
+   for (let c = 0; c < p.shape[0].length; c++) {
+    if (!p.shape[r][c]) continue;
+    board[sr + r][sc + c] = p.color;
+   }
+  }
+
+  // Count blocks placed
+  let blocksPlaced = 0;
+  for (let r = 0; r < p.shape.length; r++)
+   for (let c = 0; c < p.shape[0].length; c++)
+    if (p.shape[r][c]) blocksPlaced++;
+  score += blocksPlaced;
+
+  pieces[selectedPiece] = null;
+  selectedPiece = null;
+
+  // Check for full rows and columns
+  let cleared = 0;
+  let fullRows = [];
+  let fullCols = [];
+
+  for (let r = 0; r < GRID; r++) {
+   if (board[r].every(v => v !== 0)) fullRows.push(r);
+  }
+  for (let c = 0; c < GRID; c++) {
+   let full = true;
+   for (let r = 0; r < GRID; r++) { if (!board[r][c]) { full = false; break; } }
+   if (full) fullCols.push(c);
+  }
+
+  // Flash and clear
+  fullRows.forEach(r => { for (let c = 0; c < GRID; c++) board[r][c] = 0; cleared++; });
+  fullCols.forEach(c => { for (let r = 0; r < GRID; r++) board[r][c] = 0; cleared++; });
+
+  if (cleared > 0) {
+   score += cleared * GRID * 2;
+   // Bonus for combos
+   if (cleared > 1) score += (cleared - 1) * 20;
+  }
+
+  if (score > highScore) {
+   highScore = score;
+   localStorage.setItem('bb_high', highScore);
+  }
+
+  scoreDisplay.innerHTML = '<span style="color:#ffeb3b;font-weight:700;">Score: ' + score + '</span> | <span style="color:#aaa;">Best: ' + highScore + '</span>';
+
+  renderBoard();
+
+  // Spawn new pieces if all 3 used
+  if (pieces.every(p => p === null)) spawnPieces();
+
+  // Check game over
+  if (isGameOver()) {
+   gameOver = true;
+   const overlay = document.createElement('div');
+   overlay.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;';
+   overlay.innerHTML = '<h2 style="color:#ff4444;font-size:2em;margin-bottom:8px;">Game Over!</h2>'
+    + '<p style="color:#fff;font-size:1.3em;margin-bottom:4px;">Score: <b>' + score + '</b></p>'
+    + '<p style="color:#aaa;margin-bottom:16px;">Best: ' + highScore + '</p>'
+    + '<button id="bb-retry" style="padding:12px 32px;background:#00ff88;color:#000;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;">Play Again</button>';
+   area.style.position = 'relative';
+   area.appendChild(overlay);
+   document.getElementById('bb-retry').addEventListener('click', () => {
+    board = [];
+    for (let r = 0; r < GRID; r++) { board[r] = []; for (let c = 0; c < GRID; c++) board[r][c] = 0; }
+    score = 0;
+    gameOver = false;
+    scoreDisplay.innerHTML = '<span style="color:#ffeb3b;font-weight:700;">Score: 0</span> | <span style="color:#aaa;">Best: ' + highScore + '</span>';
+    overlay.remove();
+    renderBoard();
+    spawnPieces();
+   });
+  }
+
+  renderTray();
+ }
+
+ function isGameOver() {
+  for (let i = 0; i < pieces.length; i++) {
+   if (!pieces[i]) continue;
+   for (let r = 0; r < GRID; r++)
+    for (let c = 0; c < GRID; c++)
+     if (canPlace(pieces[i].shape, r, c)) return false;
+  }
+  return true;
+ }
+
+ function renderBoard() {
+  for (let r = 0; r < GRID; r++)
+   for (let c = 0; c < GRID; c++)
+    cells[r][c].style.background = board[r][c] ? board[r][c] : 'rgba(255,255,255,0.08)';
+ }
+
+ spawnPieces();
+
+ gameCleanup = () => {};
 }
