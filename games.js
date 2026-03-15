@@ -97,6 +97,7 @@ function launchGame(name) {
  case 'granny': initGranny(); break;
  case 'blockblast': initBlockBlast(); break;
  case 'tvhorror': initTVHorror(); break;
+ case 'eating': initEatingSimulator(); break;
 
  }
 }
@@ -12139,6 +12140,495 @@ function initTVHorror() {
   window.removeEventListener('keydown', onKeyDown);
   window.removeEventListener('keyup', onKeyUp);
   window.removeEventListener('keydown', onRestart);
+  if (audioCtx) { try { audioCtx.close(); } catch(e) {} }
+ };
+}
+
+// ==================== 30. EATING SIMULATOR ====================
+function initEatingSimulator() {
+ gameTitle.textContent = 'Eating Simulator';
+
+ const canvas = document.createElement('canvas');
+ canvas.className = 'game-canvas';
+ canvas.width = 400;
+ canvas.height = 400;
+ const ctx = canvas.getContext('2d');
+
+ const info = document.createElement('div');
+ info.className = 'game-info';
+ info.innerHTML = '<span>Score: <b id="eat-score">0</b></span><span>Time: <b id="eat-time">60</b></span><span>Best: <b id="eat-high">' + getHigh('eating') + '</b></span>';
+
+ const powerupBar = document.createElement('div');
+ powerupBar.style.cssText = 'text-align:center;color:#ffd700;font-weight:bold;font-size:0.9rem;min-height:1.4em;margin:4px 0;';
+ powerupBar.id = 'eat-powerup';
+
+ const startBtn = document.createElement('button');
+ startBtn.className = 'game-btn';
+ startBtn.textContent = '🍕 Start 🍕';
+
+ const mobileControls = document.createElement('div');
+ mobileControls.style.cssText = 'display:grid;grid-template-columns:repeat(3,60px);grid-template-rows:repeat(3,50px);gap:4px;margin-top:12px;justify-content:center;';
+ const dpadLayout = [
+  ['', 'UP', ''],
+  ['LT', '', 'RT'],
+  ['', 'DN', '']
+ ];
+ const dpadArrows = { UP: '⬆️', DN: '⬇️', LT: '⬅️', RT: '➡️' };
+ const dpadDirMap = { UP: 'up', DN: 'down', LT: 'left', RT: 'right' };
+ dpadLayout.forEach(row => {
+  row.forEach(d => {
+   const b = document.createElement('button');
+   b.className = 'game-btn';
+   b.style.cssText = 'padding:8px;font-size:1.2rem;margin:0;';
+   if (d && dpadDirMap[d]) {
+    b.textContent = dpadArrows[d];
+    const dir = dpadDirMap[d];
+    b.addEventListener('mousedown', () => { keys['dpad-' + dir] = true; });
+    b.addEventListener('mouseup', () => { keys['dpad-' + dir] = false; });
+    b.addEventListener('mouseleave', () => { keys['dpad-' + dir] = false; });
+    b.addEventListener('touchstart', (e) => { e.preventDefault(); keys['dpad-' + dir] = true; });
+    b.addEventListener('touchend', (e) => { e.preventDefault(); keys['dpad-' + dir] = false; });
+    b.addEventListener('touchcancel', () => { keys['dpad-' + dir] = false; });
+   } else {
+    b.style.visibility = 'hidden';
+   }
+   mobileControls.appendChild(b);
+  });
+ });
+
+ gameArea.append(info, powerupBar, canvas, startBtn, mobileControls);
+
+ // Audio engine
+ const AudioCtx = window.AudioContext || window.webkitAudioContext;
+ let audioCtx;
+ function ensureAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+ }
+ function playEatSound() {
+  ensureAudio();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type = 'sine';
+  o.frequency.setValueAtTime(600, audioCtx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+  g.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+  o.start(); o.stop(audioCtx.currentTime + 0.15);
+ }
+ function playPowerupSound() {
+  ensureAudio();
+  [0, 0.1, 0.2].forEach((delay, i) => {
+   const o = audioCtx.createOscillator();
+   const g = audioCtx.createGain();
+   o.connect(g); g.connect(audioCtx.destination);
+   o.type = 'sine';
+   o.frequency.setValueAtTime(800 + i * 200, audioCtx.currentTime + delay);
+   g.gain.setValueAtTime(0.25, audioCtx.currentTime + delay);
+   g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + 0.12);
+   o.start(audioCtx.currentTime + delay);
+   o.stop(audioCtx.currentTime + delay + 0.12);
+  });
+ }
+ function playPoisonSound() {
+  ensureAudio();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(400, audioCtx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.6);
+  g.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+  o.start(); o.stop(audioCtx.currentTime + 0.6);
+ }
+ function playGameOverSnd() {
+  ensureAudio();
+  [400, 350, 300, 200].forEach((freq, i) => {
+   const o = audioCtx.createOscillator();
+   const g = audioCtx.createGain();
+   o.connect(g); g.connect(audioCtx.destination);
+   o.type = 'square';
+   const t = audioCtx.currentTime + i * 0.2;
+   o.frequency.setValueAtTime(freq, t);
+   g.gain.setValueAtTime(0.2, t);
+   g.gain.exponentialRampToValueAtTime(0.01, t + 0.18);
+   o.start(t); o.stop(t + 0.18);
+  });
+ }
+ function playTickSound() {
+  ensureAudio();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type = 'sine';
+  o.frequency.setValueAtTime(1000, audioCtx.currentTime);
+  g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+  o.start(); o.stop(audioCtx.currentTime + 0.05);
+ }
+
+ // Food types
+ const FOODS = [
+  { emoji: '🍔', points: 10, name: 'Burger' },
+  { emoji: '🍕', points: 8, name: 'Pizza' },
+  { emoji: '🍩', points: 12, name: 'Donut' },
+  { emoji: '🍦', points: 7, name: 'Ice Cream' },
+  { emoji: '🌮', points: 9, name: 'Taco' },
+  { emoji: '🍟', points: 6, name: 'Fries' },
+  { emoji: '🍪', points: 5, name: 'Cookie' },
+  { emoji: '🍎', points: 15, name: 'Apple' },
+  { emoji: '🍌', points: 13, name: 'Banana' },
+  { emoji: '🍉', points: 20, name: 'Watermelon' }
+ ];
+
+ let player, foods, particles, score, timeLeft, gameRunning;
+ let foodsEaten, bestCombo, currentCombo, comboTimer;
+ let powerupActive, powerupTimer, keys, animFrame;
+ let lastTime, spawnTimer, timerAccum;
+
+ function createPlayer() {
+  return {
+   x: canvas.width / 2,
+   y: canvas.height / 2,
+   baseSize: 15,
+   size: 15,
+   speed: 140,
+   mouthOpen: 0,
+   mouthDir: 1,
+   growthLevel: 0
+  };
+ }
+
+ function spawnFood() {
+  const padding = 25;
+  const isSpecial = Math.random() < 0.08;
+  const isPoison = !isSpecial && Math.random() < 0.05;
+  let food;
+  if (isSpecial) {
+   food = { emoji: '⭐', points: 0, name: 'Star', special: true };
+  } else if (isPoison) {
+   food = { emoji: '💀', points: 0, name: 'Poison', poison: true };
+  } else {
+   food = { ...FOODS[Math.floor(Math.random() * FOODS.length)] };
+  }
+  const size = food.special ? 18 : (food.poison ? 15 : 10 + Math.random() * 5);
+  return {
+   x: padding + Math.random() * (canvas.width - padding * 2),
+   y: padding + Math.random() * (canvas.height - padding * 2),
+   size: size,
+   ...food,
+   bobOffset: Math.random() * Math.PI * 2,
+   age: 0,
+   alpha: 0
+  };
+ }
+
+ function createParticle(x, y, emoji, color) {
+  return {
+   x, y,
+   vx: (Math.random() - 0.5) * 200,
+   vy: (Math.random() - 0.5) * 200 - 100,
+   life: 1,
+   decay: 1.5 + Math.random(),
+   size: 6 + Math.random() * 5,
+   emoji: emoji,
+   color: color,
+   rotation: Math.random() * Math.PI * 2
+  };
+ }
+
+ function createScorePopup(x, y, points) {
+  return {
+   x, y,
+   vy: -80,
+   life: 1,
+   decay: 1.2,
+   text: '+' + points,
+   size: 10 + Math.min(points, 20),
+   isText: true
+  };
+ }
+
+ function checkCollision(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  return dist < (a.size + b.size) * 0.6;
+ }
+
+ function eatFood(food, index) {
+  foods.splice(index, 1);
+  if (food.poison) {
+   for (let i = 0; i < 15; i++) particles.push(createParticle(food.x, food.y, '💀', '#00ff00'));
+   endGame(true);
+   return;
+  }
+  if (food.special) {
+   playPowerupSound();
+   powerupActive = true;
+   powerupTimer = 5;
+   document.getElementById('eat-powerup').textContent = '⭐ 2x POINTS! ⭐';
+   for (let i = 0; i < 10; i++) particles.push(createParticle(food.x, food.y, '⭐', '#ffd700'));
+   return;
+  }
+  playEatSound();
+  let pts = food.points;
+  if (powerupActive) pts *= 2;
+  currentCombo++;
+  comboTimer = 1.5;
+  if (currentCombo > 1) pts = Math.floor(pts * (1 + currentCombo * 0.1));
+  if (currentCombo > bestCombo) bestCombo = currentCombo;
+  score += pts;
+  foodsEaten++;
+  player.growthLevel = Math.min(foodsEaten * 0.25, 12);
+  player.size = player.baseSize + player.growthLevel;
+  player.speed = Math.max(90, 140 - player.growthLevel);
+  document.getElementById('eat-score').textContent = score;
+  for (let i = 0; i < 5; i++) particles.push(createParticle(food.x, food.y, food.emoji, '#ffaa00'));
+  particles.push(createScorePopup(food.x, food.y - 10, pts));
+ }
+
+ function endGame(poisoned) {
+  gameRunning = false;
+  if (animFrame) cancelAnimationFrame(animFrame);
+  if (poisoned) playPoisonSound();
+  playGameOverSnd();
+  document.getElementById('eat-powerup').textContent = '';
+  const title = poisoned ? '☠️ Poisoned!' : "⏰ Time's Up!";
+  showGameOver(title + ' | Foods: ' + foodsEaten + ' | Best Combo: ' + bestCombo, score, 'eating', () => { reset(); beginGame(); });
+ }
+
+ function reset() {
+  player = createPlayer();
+  foods = [];
+  particles = [];
+  score = 0;
+  timeLeft = 60;
+  foodsEaten = 0;
+  bestCombo = 0;
+  currentCombo = 0;
+  comboTimer = 0;
+  powerupActive = false;
+  powerupTimer = 0;
+  keys = {};
+  timerAccum = 0;
+  spawnTimer = 0;
+  for (let i = 0; i < 8; i++) foods.push(spawnFood());
+  document.getElementById('eat-score').textContent = '0';
+  document.getElementById('eat-time').textContent = '60';
+  document.getElementById('eat-high').textContent = getHigh('eating');
+  document.getElementById('eat-powerup').textContent = '';
+ }
+
+ function beginGame() {
+  ensureAudio();
+  gameRunning = true;
+  lastTime = performance.now();
+  if (animFrame) cancelAnimationFrame(animFrame);
+  gameLoop();
+ }
+
+ function gameLoop() {
+  if (!gameRunning) return;
+  animFrame = requestAnimationFrame(gameLoop);
+  const now = performance.now();
+  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
+
+  // Timer
+  timerAccum += dt;
+  if (timerAccum >= 1) {
+   timerAccum -= 1;
+   timeLeft--;
+   document.getElementById('eat-time').textContent = Math.max(0, Math.ceil(timeLeft));
+   if (timeLeft <= 5 && timeLeft > 0) playTickSound();
+   if (timeLeft <= 0) { endGame(false); return; }
+  }
+
+  // Combo decay
+  if (comboTimer > 0) {
+   comboTimer -= dt;
+   if (comboTimer <= 0) currentCombo = 0;
+  }
+
+  // Powerup timer
+  if (powerupActive) {
+   powerupTimer -= dt;
+   if (powerupTimer <= 0) {
+    powerupActive = false;
+    document.getElementById('eat-powerup').textContent = '';
+   }
+  }
+
+  // Spawn food
+  spawnTimer += dt;
+  const spawnRate = 1.2 - Math.min(score / 500, 0.7);
+  if (spawnTimer >= spawnRate && foods.length < 15) {
+   spawnTimer = 0;
+   foods.push(spawnFood());
+  }
+
+  // Player movement
+  let mx = 0, my = 0;
+  if (keys['ArrowLeft'] || keys['a'] || keys['A'] || keys['dpad-left']) mx -= 1;
+  if (keys['ArrowRight'] || keys['d'] || keys['D'] || keys['dpad-right']) mx += 1;
+  if (keys['ArrowUp'] || keys['w'] || keys['W'] || keys['dpad-up']) my -= 1;
+  if (keys['ArrowDown'] || keys['s'] || keys['S'] || keys['dpad-down']) my += 1;
+  if (mx !== 0 && my !== 0) { mx *= 0.707; my *= 0.707; }
+
+  player.x += mx * player.speed * dt;
+  player.y += my * player.speed * dt;
+  player.x = Math.max(player.size, Math.min(canvas.width - player.size, player.x));
+  player.y = Math.max(player.size, Math.min(canvas.height - player.size, player.y));
+
+  // Mouth animation
+  player.mouthOpen += player.mouthDir * dt * 5;
+  if (player.mouthOpen > 1) { player.mouthOpen = 1; player.mouthDir = -1; }
+  if (player.mouthOpen < 0) { player.mouthOpen = 0; player.mouthDir = 1; }
+
+  // Collisions
+  for (let i = foods.length - 1; i >= 0; i--) {
+   if (checkCollision(player, foods[i])) {
+    eatFood(foods[i], i);
+    if (!gameRunning) return;
+   }
+  }
+
+  // Update food
+  foods.forEach(f => { f.age += dt; f.alpha = Math.min(1, f.age * 3); });
+
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+   const p = particles[i];
+   p.life -= p.decay * dt;
+   if (p.isText) { p.y += p.vy * dt; }
+   else { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; }
+   if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  // ============ RENDER ============
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background
+  ctx.fillStyle = '#0d0d20';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  const gridSize = 30;
+  for (let x = 0; x < canvas.width; x += gridSize) {
+   ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += gridSize) {
+   ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
+  // Draw foods
+  foods.forEach(f => {
+   ctx.save();
+   ctx.globalAlpha = f.alpha;
+   const bob = Math.sin(f.bobOffset + performance.now() / 500) * 2;
+   const scale = f.special ? 1 + Math.sin(performance.now() / 200) * 0.15 : 1;
+   ctx.font = (f.size * 2 * scale) + 'px serif';
+   ctx.textAlign = 'center';
+   ctx.textBaseline = 'middle';
+   if (f.special) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 20; }
+   else if (f.poison) { ctx.shadowColor = '#00ff00'; ctx.shadowBlur = 15; }
+   ctx.fillText(f.emoji, f.x, f.y + bob);
+   ctx.restore();
+  });
+
+  // Draw player
+  ctx.save();
+  const playerScale = 1 + Math.sin(performance.now() / 300) * 0.03;
+  ctx.font = (player.size * 2 * playerScale) + 'px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (powerupActive) {
+   ctx.shadowColor = '#ffd700';
+   ctx.shadowBlur = 30 + Math.sin(performance.now() / 150) * 10;
+  } else {
+   ctx.shadowColor = 'rgba(255,200,0,0.4)';
+   ctx.shadowBlur = 10;
+  }
+  let face = '😋';
+  if (mx !== 0 || my !== 0) face = '😮';
+  if (powerupActive) face = '🤩';
+  if (currentCombo >= 3) face = '😤';
+  if (timeLeft <= 10) face = '😰';
+  ctx.fillText(face, player.x, player.y);
+  ctx.restore();
+
+  // Combo indicator
+  if (currentCombo >= 2) {
+   ctx.save();
+   ctx.font = 'bold ' + (8 + currentCombo * 2) + 'px sans-serif';
+   ctx.textAlign = 'center';
+   ctx.fillStyle = 'rgba(255,' + Math.max(100, 255 - currentCombo * 30) + ',0,' + Math.min(1, comboTimer) + ')';
+   ctx.shadowColor = '#ff6600';
+   ctx.shadowBlur = 10;
+   ctx.fillText(currentCombo + 'x COMBO!', player.x, player.y - player.size - 8);
+   ctx.restore();
+  }
+
+  // Particles
+  particles.forEach(p => {
+   ctx.save();
+   ctx.globalAlpha = Math.max(0, p.life);
+   if (p.isText) {
+    ctx.font = 'bold ' + p.size + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = powerupActive ? '#ffd700' : '#fff';
+    ctx.shadowColor = powerupActive ? '#ffd700' : '#ff6600';
+    ctx.shadowBlur = 8;
+    ctx.fillText(p.text, p.x, p.y);
+   } else {
+    ctx.font = p.size + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rotation);
+    ctx.fillText(p.emoji, 0, 0);
+   }
+   ctx.restore();
+  });
+
+  // Timer warning flash
+  if (timeLeft <= 10 && timeLeft > 0) {
+   ctx.save();
+   ctx.fillStyle = 'rgba(255,0,0,' + (0.1 * Math.abs(Math.sin(performance.now() / 200))) + ')';
+   ctx.fillRect(0, 0, canvas.width, canvas.height);
+   ctx.restore();
+  }
+ }
+
+ // Keyboard input
+ function onKeyDown(e) {
+  keys[e.key] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+ }
+ function onKeyUp(e) {
+  keys[e.key] = false;
+ }
+ window.addEventListener('keydown', onKeyDown);
+ window.addEventListener('keyup', onKeyUp);
+
+ reset();
+
+ startBtn.onclick = () => {
+  startBtn.style.display = 'none';
+  reset();
+  beginGame();
+ };
+
+ gameCleanup = () => {
+  gameRunning = false;
+  if (animFrame) cancelAnimationFrame(animFrame);
+  window.removeEventListener('keydown', onKeyDown);
+  window.removeEventListener('keyup', onKeyUp);
   if (audioCtx) { try { audioCtx.close(); } catch(e) {} }
  };
 }
