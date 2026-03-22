@@ -490,6 +490,368 @@ footer {
     #game-title { font-size: 1.1rem; }
 }
 
+/* ==================== AK ACADEMY ==================== */
+.academy-card {
+    background: linear-gradient(135deg, #1a1a0a, #2a2a10) !important;
+    border: 2px solid #ffd700 !important;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), inset 0 0 30px rgba(255, 215, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.academy-card::before {
+    background: linear-gradient(135deg, #ffd700, #ffaa00, #ff8800) !important;
+    opacity: 0.15 !important;
+}
+
+.academy-card:hover {
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.5), 0 10px 40px rgba(255, 215, 0, 0.2) !important;
+    border-color: #ffdd44 !important;
+}
+
+.academy-card::after {
+    content: '⭐';
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 1rem;
+    animation: starSpin 3s linear infinite;
+}
+
+@keyframes starSpin {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.3); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+.academy-card h2 {
+    color: #ffd700 !important;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.academy-btn {
+    border-color: #ffd700 !important;
+    color: #ffd700 !important;
+}
+
+.academy-btn:hover {
+    background: #ffd700 !important;
+    color: var(--bg-dark) !important;
+    box-shadow: 0 0 15px #ffd700 !important;
+}
+
+/* Academy Lobby */
+.academy-lobby {
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+    padding: 20px 10px;
+}
+
+.academy-lobby h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    color: #ffd700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    margin-bottom: 8px;
+}
+
+.academy-lobby .academy-subtitle {
+    color: #aaa;
+    font-size: 1rem;
+    margin-bottom: 24px;
+}
+
+.academy-hallway {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 0 10px;
+}
+
+.classroom-door {
+    background: linear-gradient(180deg, #1a1a3a, #12122a);
+    border: 2px solid #333366;
+    border-radius: 16px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.classroom-door::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    border-radius: 16px 16px 0 0;
+    transition: opacity 0.3s;
+    opacity: 0;
+}
+
+.classroom-door:hover {
+    transform: translateY(-4px) scale(1.03);
+    border-color: transparent;
+}
+
+.classroom-door:hover::before {
+    opacity: 1;
+}
+
+.door-math::before { background: linear-gradient(90deg, #ff6644, #ff4444); }
+.door-math:hover { border-color: #ff6644; box-shadow: 0 0 25px rgba(255, 102, 68, 0.3); }
+
+.door-science::before { background: linear-gradient(90deg, #00d4ff, #0088ff); }
+.door-science:hover { border-color: #00d4ff; box-shadow: 0 0 25px rgba(0, 212, 255, 0.3); }
+
+.door-english::before { background: linear-gradient(90deg, #b44aff, #8844ff); }
+.door-english:hover { border-color: #b44aff; box-shadow: 0 0 25px rgba(180, 74, 255, 0.3); }
+
+.door-art::before { background: linear-gradient(90deg, #ff44aa, #ff88cc); }
+.door-art:hover { border-color: #ff44aa; box-shadow: 0 0 25px rgba(255, 68, 170, 0.3); }
+
+.door-icon {
+    font-size: 2.8rem;
+    margin-bottom: 8px;
+}
+
+.door-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.door-math .door-title { color: #ff6644; }
+.door-science .door-title { color: #00d4ff; }
+.door-english .door-title { color: #b44aff; }
+.door-art .door-title { color: #ff44aa; }
+
+.door-desc {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+/* Academy Classroom Shared */
+.academy-room {
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+    padding: 10px;
+}
+
+.academy-room h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.4rem;
+    margin-bottom: 12px;
+}
+
+.academy-back-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 8px 18px;
+    border: 2px solid #ffd700;
+    border-radius: 8px;
+    background: transparent;
+    color: #ffd700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 16px;
+    display: inline-block;
+}
+
+.academy-back-btn:hover {
+    background: #ffd700;
+    color: #0a0a1a;
+}
+
+/* Quiz Styles */
+.quiz-question {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.4rem;
+    color: #fff;
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quiz-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0;
+}
+
+.quiz-option {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 14px;
+    border: 2px solid #444;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+    color: #e0e0ff;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quiz-option:hover {
+    border-color: #00d4ff;
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.quiz-option.correct {
+    border-color: #00ff88 !important;
+    background: rgba(0, 255, 136, 0.15) !important;
+    color: #00ff88 !important;
+}
+
+.quiz-option.wrong {
+    border-color: #ff4444 !important;
+    background: rgba(255, 68, 68, 0.15) !important;
+    color: #ff4444 !important;
+}
+
+.quiz-score-bar {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 10px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+}
+
+.quiz-difficulty-btns {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.quiz-diff-btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85rem;
+    padding: 6px 16px;
+    border: 2px solid #555;
+    border-radius: 8px;
+    background: transparent;
+    color: #aaa;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quiz-diff-btn.active {
+    border-color: #ffd700;
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+}
+
+/* Spelling Bee */
+.spelling-input {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    padding: 12px 20px;
+    border: 2px solid #b44aff;
+    border-radius: 10px;
+    background: rgba(180, 74, 255, 0.08);
+    color: #e0e0ff;
+    text-align: center;
+    width: 250px;
+    max-width: 90%;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.spelling-input:focus {
+    border-color: #d088ff;
+    box-shadow: 0 0 15px rgba(180, 74, 255, 0.3);
+}
+
+.spelling-submit {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 10px 24px;
+    border: 2px solid #b44aff;
+    border-radius: 8px;
+    background: transparent;
+    color: #b44aff;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 8px;
+}
+
+.spelling-submit:hover {
+    background: #b44aff;
+    color: #fff;
+}
+
+/* Art Room */
+.art-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.art-color-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.art-color-btn:hover, .art-color-btn.active {
+    border-color: #fff;
+    transform: scale(1.2);
+    box-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
+
+.art-brush-btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    border: 2px solid #555;
+    border-radius: 6px;
+    background: transparent;
+    color: #aaa;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.art-brush-btn.active {
+    border-color: #ff44aa;
+    color: #ff44aa;
+}
+
+.art-clear-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    padding: 6px 14px;
+    border: 2px solid #ff4444;
+    border-radius: 6px;
+    background: transparent;
+    color: #ff4444;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.art-clear-btn:hover {
+    background: #ff4444;
+    color: #fff;
+}
+
 @media (max-width: 380px) {
     .games-grid { grid-template-columns: 1fr; }
     .memory-grid { grid-template-columns: repeat(4, 60px); grid-template-rows: repeat(4, 60px); }

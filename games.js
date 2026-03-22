@@ -98,7 +98,7 @@ function launchGame(name) {
  case 'blockblast': initBlockBlast(); break;
  case 'tvhorror': initTVHorror(); break;
  case 'eating': initEatingSimulator(); break;
-
+ case 'academy': initAcademy(); break;
  }
 }
 
@@ -12630,5 +12630,451 @@ function initEatingSimulator() {
   window.removeEventListener('keydown', onKeyDown);
   window.removeEventListener('keyup', onKeyUp);
   if (audioCtx) { try { audioCtx.close(); } catch(e) {} }
+ };
+}
+
+// ==================== AK ACADEMY ====================
+function initAcademy() {
+ gameTitle.textContent = 'AK Academy';
+ gameScoreDisplay.textContent = '';
+
+ // Hide the default back button — we manage our own navigation
+ const defaultBack = document.querySelector('.back-btn');
+ if (defaultBack) defaultBack.style.display = 'none';
+
+ let currentRoom = 'lobby';
+ let roomCleanup = null;
+
+ function showLobby() {
+  if (roomCleanup) { roomCleanup(); roomCleanup = null; }
+  currentRoom = 'lobby';
+  gameTitle.textContent = 'AK Academy';
+  gameScoreDisplay.textContent = '';
+  gameArea.innerHTML = '';
+
+  const lobby = document.createElement('div');
+  lobby.className = 'academy-lobby';
+  lobby.innerHTML = '<div style="font-size:4rem;margin-bottom:4px;">🏫</div>' +
+   '<h2>AK Academy</h2>' +
+   '<div class="academy-subtitle">Pick a classroom to enter!</div>' +
+   '<div class="academy-hallway">' +
+   '<div class="classroom-door door-math" id="door-math"><div class="door-icon">🔢</div><div class="door-title">Math Class</div><div class="door-desc">Addition, subtraction & more!</div></div>' +
+   '<div class="classroom-door door-science" id="door-science"><div class="door-icon">🔬</div><div class="door-title">Science Lab</div><div class="door-desc">Fun facts about our world!</div></div>' +
+   '<div class="classroom-door door-english" id="door-english"><div class="door-icon">📚</div><div class="door-title">English Class</div><div class="door-desc">Spelling bee challenge!</div></div>' +
+   '<div class="classroom-door door-art" id="door-art"><div class="door-icon">🎨</div><div class="door-title">Art Room</div><div class="door-desc">Draw and color!</div></div>' +
+   '</div>' +
+   '<button class="academy-back-btn" id="academy-exit">⬅ Back to Games</button>';
+  gameArea.appendChild(lobby);
+
+  document.getElementById('door-math').onclick = function() { openMathClass(); };
+  document.getElementById('door-science').onclick = function() { openScienceLab(); };
+  document.getElementById('door-english').onclick = function() { openEnglishClass(); };
+  document.getElementById('door-art').onclick = function() { openArtRoom(); };
+  document.getElementById('academy-exit').onclick = function() {
+   if (defaultBack) defaultBack.style.display = '';
+   backToMenu();
+  };
+ }
+
+ // ========== MATH CLASS ==========
+ function openMathClass() {
+  if (roomCleanup) { roomCleanup(); roomCleanup = null; }
+  currentRoom = 'math';
+  gameTitle.textContent = '🔢 Math Class';
+  gameArea.innerHTML = '';
+
+  var difficulty = 'easy';
+  var score = 0;
+  var total = 0;
+  var streak = 0;
+
+  function genQuestion() {
+   var a, b, op, answer, text;
+   if (difficulty === 'easy') {
+    op = Math.random() < 0.5 ? '+' : '-';
+    a = Math.floor(Math.random() * 10) + 1;
+    b = Math.floor(Math.random() * 10) + 1;
+    if (op === '-' && b > a) { var t = a; a = b; b = t; }
+    answer = op === '+' ? a + b : a - b;
+    text = a + ' ' + op + ' ' + b + ' = ?';
+   } else if (difficulty === 'medium') {
+    var r = Math.random();
+    if (r < 0.33) { op = '+'; a = Math.floor(Math.random() * 50) + 10; b = Math.floor(Math.random() * 50) + 10; answer = a + b; }
+    else if (r < 0.66) { op = '-'; a = Math.floor(Math.random() * 50) + 20; b = Math.floor(Math.random() * a); answer = a - b; }
+    else { op = '×'; a = Math.floor(Math.random() * 10) + 1; b = Math.floor(Math.random() * 5) + 1; answer = a * b; }
+    text = a + ' ' + op + ' ' + b + ' = ?';
+   } else {
+    var r2 = Math.random();
+    if (r2 < 0.25) { op = '+'; a = Math.floor(Math.random() * 100) + 50; b = Math.floor(Math.random() * 100) + 50; answer = a + b; }
+    else if (r2 < 0.5) { op = '-'; a = Math.floor(Math.random() * 100) + 50; b = Math.floor(Math.random() * a); answer = a - b; }
+    else if (r2 < 0.75) { op = '×'; a = Math.floor(Math.random() * 12) + 1; b = Math.floor(Math.random() * 12) + 1; answer = a * b; }
+    else { b = Math.floor(Math.random() * 10) + 2; answer = Math.floor(Math.random() * 10) + 1; a = b * answer; op = '÷'; }
+    text = a + ' ' + op + ' ' + b + ' = ?';
+   }
+   var opts = [answer];
+   while (opts.length < 4) {
+    var wrong = answer + Math.floor(Math.random() * 11) - 5;
+    if (wrong < 0) wrong = Math.abs(wrong) + Math.floor(Math.random() * 5);
+    if (wrong !== answer && opts.indexOf(wrong) === -1) opts.push(wrong);
+   }
+   opts.sort(function() { return Math.random() - 0.5; });
+   return { text: text, answer: answer, options: opts };
+  }
+
+  function renderMath() {
+   var q = genQuestion();
+   gameArea.innerHTML = '';
+   var room = document.createElement('div');
+   room.className = 'academy-room';
+   room.innerHTML = '<h3 style="color:#ff6644;">🔢 Math Class</h3>' +
+    '<div class="quiz-score-bar"><span style="color:#00ff88;">✅ ' + score + '</span><span style="color:#888;">📝 ' + total + '</span><span style="color:#ffd700;">🔥 ' + streak + '</span></div>' +
+    '<div class="quiz-difficulty-btns">' +
+    '<button class="quiz-diff-btn ' + (difficulty === 'easy' ? 'active' : '') + '" data-diff="easy">Easy</button>' +
+    '<button class="quiz-diff-btn ' + (difficulty === 'medium' ? 'active' : '') + '" data-diff="medium">Medium</button>' +
+    '<button class="quiz-diff-btn ' + (difficulty === 'hard' ? 'active' : '') + '" data-diff="hard">Hard</button>' +
+    '</div>' +
+    '<div class="quiz-question">' + q.text + '</div>' +
+    '<div class="quiz-options">' + q.options.map(function(o) { return '<button class="quiz-option" data-val="' + o + '">' + o + '</button>'; }).join('') + '</div>' +
+    '<button class="academy-back-btn" id="math-back">⬅ Back to Lobby</button>';
+   gameArea.appendChild(room);
+
+   room.querySelectorAll('.quiz-diff-btn').forEach(function(btn) {
+    btn.onclick = function() { difficulty = btn.dataset.diff; score = 0; total = 0; streak = 0; renderMath(); };
+   });
+
+   room.querySelectorAll('.quiz-option').forEach(function(btn) {
+    btn.onclick = function() {
+     total++;
+     var val = parseInt(btn.dataset.val);
+     if (val === q.answer) {
+      btn.classList.add('correct');
+      score++; streak++;
+     } else {
+      btn.classList.add('wrong');
+      streak = 0;
+      room.querySelectorAll('.quiz-option').forEach(function(b) {
+       if (parseInt(b.dataset.val) === q.answer) b.classList.add('correct');
+      });
+     }
+     room.querySelectorAll('.quiz-option').forEach(function(b) { b.style.pointerEvents = 'none'; });
+     setTimeout(renderMath, 1000);
+    };
+   });
+
+   document.getElementById('math-back').onclick = showLobby;
+  }
+
+  renderMath();
+  roomCleanup = function() {};
+ }
+
+ // ========== SCIENCE LAB ==========
+ function openScienceLab() {
+  if (roomCleanup) { roomCleanup(); roomCleanup = null; }
+  currentRoom = 'science';
+  gameTitle.textContent = '🔬 Science Lab';
+  gameArea.innerHTML = '';
+
+  var scienceQuestions = [
+   { q: 'What planet is closest to the Sun?', options: ['Mercury', 'Venus', 'Earth', 'Mars'], answer: 'Mercury', emoji: '☀️' },
+   { q: 'How many legs does a spider have?', options: ['6', '8', '10', '4'], answer: '8', emoji: '🕷️' },
+   { q: 'What gas do plants breathe in?', options: ['Oxygen', 'Carbon Dioxide', 'Nitrogen', 'Helium'], answer: 'Carbon Dioxide', emoji: '🌱' },
+   { q: 'What is the biggest ocean?', options: ['Atlantic', 'Indian', 'Pacific', 'Arctic'], answer: 'Pacific', emoji: '🌊' },
+   { q: 'What animal is the tallest?', options: ['Elephant', 'Giraffe', 'Horse', 'Bear'], answer: 'Giraffe', emoji: '🦒' },
+   { q: 'What do caterpillars turn into?', options: ['Beetles', 'Butterflies', 'Spiders', 'Ants'], answer: 'Butterflies', emoji: '🐛' },
+   { q: 'How many bones are in the human body?', options: ['106', '206', '306', '406'], answer: '206', emoji: '🦴' },
+   { q: 'What is the hardest natural material?', options: ['Gold', 'Iron', 'Diamond', 'Rock'], answer: 'Diamond', emoji: '💎' },
+   { q: 'What gives leaves their green color?', options: ['Water', 'Sunlight', 'Chlorophyll', 'Soil'], answer: 'Chlorophyll', emoji: '🍃' },
+   { q: 'Which planet has rings?', options: ['Mars', 'Jupiter', 'Saturn', 'Neptune'], answer: 'Saturn', emoji: '🪐' },
+   { q: 'What animal lives the longest?', options: ['Elephant', 'Whale', 'Tortoise', 'Parrot'], answer: 'Tortoise', emoji: '🐢' },
+   { q: 'What is the biggest land animal?', options: ['Giraffe', 'Elephant', 'Hippo', 'Rhino'], answer: 'Elephant', emoji: '🐘' },
+   { q: 'How many colors are in a rainbow?', options: ['5', '6', '7', '8'], answer: '7', emoji: '🌈' },
+   { q: 'What is the closest star to Earth?', options: ['Polaris', 'Sirius', 'The Sun', 'Alpha Centauri'], answer: 'The Sun', emoji: '⭐' },
+   { q: 'What do you call a baby frog?', options: ['Pup', 'Calf', 'Tadpole', 'Cub'], answer: 'Tadpole', emoji: '🐸' },
+   { q: 'What is water made of?', options: ['Oxygen only', 'Hydrogen and Oxygen', 'Carbon', 'Nitrogen'], answer: 'Hydrogen and Oxygen', emoji: '💧' },
+   { q: 'Which animal can fly backwards?', options: ['Eagle', 'Sparrow', 'Hummingbird', 'Parrot'], answer: 'Hummingbird', emoji: '🐦' },
+   { q: 'What is the largest planet?', options: ['Saturn', 'Neptune', 'Jupiter', 'Uranus'], answer: 'Jupiter', emoji: '🪐' },
+   { q: 'How many hearts does an octopus have?', options: ['1', '2', '3', '4'], answer: '3', emoji: '🐙' },
+   { q: 'What is the fastest land animal?', options: ['Lion', 'Cheetah', 'Horse', 'Gazelle'], answer: 'Cheetah', emoji: '🐆' }
+  ];
+
+  var used = [];
+  var score = 0;
+  var total = 0;
+
+  function getRandomQ() {
+   if (used.length >= scienceQuestions.length) used = [];
+   var idx;
+   do { idx = Math.floor(Math.random() * scienceQuestions.length); } while (used.indexOf(idx) !== -1);
+   used.push(idx);
+   return scienceQuestions[idx];
+  }
+
+  function renderScience() {
+   var q = getRandomQ();
+   gameArea.innerHTML = '';
+   var room = document.createElement('div');
+   room.className = 'academy-room';
+   var shuffled = q.options.slice().sort(function() { return Math.random() - 0.5; });
+   room.innerHTML = '<h3 style="color:#00d4ff;">🔬 Science Lab</h3>' +
+    '<div class="quiz-score-bar"><span style="color:#00ff88;">✅ ' + score + '</span><span style="color:#888;">📝 ' + total + '</span></div>' +
+    '<div style="font-size:2.5rem;margin:8px 0;">' + q.emoji + '</div>' +
+    '<div class="quiz-question">' + q.q + '</div>' +
+    '<div class="quiz-options">' + shuffled.map(function(o) { return '<button class="quiz-option" data-val="' + o + '">' + o + '</button>'; }).join('') + '</div>' +
+    '<button class="academy-back-btn" id="sci-back">⬅ Back to Lobby</button>';
+   gameArea.appendChild(room);
+
+   room.querySelectorAll('.quiz-option').forEach(function(btn) {
+    btn.onclick = function() {
+     total++;
+     if (btn.dataset.val === q.answer) {
+      btn.classList.add('correct');
+      score++;
+     } else {
+      btn.classList.add('wrong');
+      room.querySelectorAll('.quiz-option').forEach(function(b) {
+       if (b.dataset.val === q.answer) b.classList.add('correct');
+      });
+     }
+     room.querySelectorAll('.quiz-option').forEach(function(b) { b.style.pointerEvents = 'none'; });
+     setTimeout(renderScience, 1200);
+    };
+   });
+
+   document.getElementById('sci-back').onclick = showLobby;
+  }
+
+  renderScience();
+  roomCleanup = function() {};
+ }
+
+ // ========== ENGLISH CLASS (Spelling Bee) ==========
+ function openEnglishClass() {
+  if (roomCleanup) { roomCleanup(); roomCleanup = null; }
+  currentRoom = 'english';
+  gameTitle.textContent = '📚 English Class';
+  gameArea.innerHTML = '';
+
+  var words = [
+   { word: 'cat', hint: 'A furry pet that meows 🐱' },
+   { word: 'dog', hint: 'A pet that barks 🐶' },
+   { word: 'fish', hint: 'It lives in water 🐟' },
+   { word: 'bird', hint: 'It can fly in the sky 🐦' },
+   { word: 'frog', hint: 'A green animal that says ribbit 🐸' },
+   { word: 'tree', hint: 'It has leaves and branches 🌳' },
+   { word: 'star', hint: 'It shines in the night sky ⭐' },
+   { word: 'moon', hint: 'You see it at night 🌙' },
+   { word: 'rain', hint: 'Water falling from clouds 🌧️' },
+   { word: 'book', hint: 'You read this 📖' },
+   { word: 'cake', hint: 'A sweet dessert for birthdays 🎂' },
+   { word: 'ball', hint: 'Round and you can throw it ⚽' },
+   { word: 'ship', hint: 'A big boat on the sea 🚢' },
+   { word: 'lamp', hint: 'It gives you light 💡' },
+   { word: 'bear', hint: 'A big furry forest animal 🐻' },
+   { word: 'lion', hint: 'The king of the jungle 🦁' },
+   { word: 'duck', hint: 'A bird that says quack 🦆' },
+   { word: 'blue', hint: 'The color of the sky 🔵' },
+   { word: 'king', hint: 'He wears a crown 👑' },
+   { word: 'jump', hint: 'To leap up in the air 🦘' },
+   { word: 'drum', hint: 'A musical instrument you hit 🥁' },
+   { word: 'snow', hint: 'White and cold, falls in winter ❄️' },
+   { word: 'hand', hint: 'You have two of these with fingers ✋' },
+   { word: 'ring', hint: 'Jewelry for your finger 💍' },
+   { word: 'home', hint: 'Where your family lives 🏠' }
+  ];
+
+  var used = [];
+  var score = 0;
+  var total = 0;
+  var currentWord = null;
+
+  function getRandomWord() {
+   if (used.length >= words.length) used = [];
+   var idx;
+   do { idx = Math.floor(Math.random() * words.length); } while (used.indexOf(idx) !== -1);
+   used.push(idx);
+   return words[idx];
+  }
+
+  function renderSpelling() {
+   currentWord = getRandomWord();
+   gameArea.innerHTML = '';
+   var room = document.createElement('div');
+   room.className = 'academy-room';
+
+   var scrambled = currentWord.word.split('').sort(function() { return Math.random() - 0.5; }).join(' ').toUpperCase();
+
+   room.innerHTML = '<h3 style="color:#b44aff;">📚 Spelling Bee</h3>' +
+    '<div class="quiz-score-bar"><span style="color:#00ff88;">✅ ' + score + '</span><span style="color:#888;">📝 ' + total + '</span></div>' +
+    '<div class="quiz-question" style="flex-direction:column;"><div style="font-size:0.9rem;color:#888;margin-bottom:6px;">Hint:</div><div>' + currentWord.hint + '</div></div>' +
+    '<div style="color:#b44aff;font-family:Orbitron,sans-serif;font-size:1.3rem;letter-spacing:8px;margin:10px 0;">' + scrambled + '</div>' +
+    '<div style="margin:14px 0;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;">' +
+    '<input type="text" class="spelling-input" id="spell-input" placeholder="Type the word..." autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="12">' +
+    '<button class="spelling-submit" id="spell-submit">Check ✓</button>' +
+    '</div>' +
+    '<div id="spell-feedback" style="min-height:30px;margin:6px 0;font-size:1.1rem;"></div>' +
+    '<button class="academy-back-btn" id="eng-back">⬅ Back to Lobby</button>';
+   gameArea.appendChild(room);
+
+   var input = document.getElementById('spell-input');
+   var submitBtn = document.getElementById('spell-submit');
+   var feedback = document.getElementById('spell-feedback');
+
+   function checkAnswer() {
+    var guess = input.value.trim().toLowerCase();
+    if (!guess) return;
+    total++;
+    if (guess === currentWord.word) {
+     score++;
+     feedback.innerHTML = '<span style="color:#00ff88;">✅ Correct! Great spelling!</span>';
+     input.style.borderColor = '#00ff88';
+    } else {
+     feedback.innerHTML = '<span style="color:#ff4444;">❌ The word was: <b style="color:#b44aff;">' + currentWord.word.toUpperCase() + '</b></span>';
+     input.style.borderColor = '#ff4444';
+    }
+    input.disabled = true;
+    submitBtn.disabled = true;
+    setTimeout(renderSpelling, 1500);
+   }
+
+   submitBtn.onclick = checkAnswer;
+   input.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkAnswer(); });
+   setTimeout(function() { input.focus(); }, 100);
+
+   document.getElementById('eng-back').onclick = showLobby;
+  }
+
+  renderSpelling();
+  roomCleanup = function() {};
+ }
+
+ // ========== ART ROOM ==========
+ function openArtRoom() {
+  if (roomCleanup) { roomCleanup(); roomCleanup = null; }
+  currentRoom = 'art';
+  gameTitle.textContent = '🎨 Art Room';
+  gameArea.innerHTML = '';
+
+  var room = document.createElement('div');
+  room.className = 'academy-room';
+
+  var colors = ['#ff4444','#ff8844','#ffdd00','#44ff88','#00d4ff','#4488ff','#b44aff','#ff44aa','#ffffff','#888888','#333333','#000000'];
+  var brushSizes = [3, 6, 12, 20];
+  var brushLabels = ['S', 'M', 'L', 'XL'];
+
+  var currentColor = '#ff4444';
+  var currentBrush = 6;
+  var drawing = false;
+  var lastX = 0, lastY = 0;
+
+  var colorBtns = colors.map(function(c) {
+   return '<button class="art-color-btn' + (c === currentColor ? ' active' : '') + '" style="background:' + c + ';" data-color="' + c + '"></button>';
+  }).join('');
+
+  var brushBtns = brushSizes.map(function(s, i) {
+   return '<button class="art-brush-btn' + (s === currentBrush ? ' active' : '') + '" data-size="' + s + '">' + brushLabels[i] + '</button>';
+  }).join('');
+
+  room.innerHTML = '<h3 style="color:#ff44aa;">🎨 Art Room</h3>' +
+   '<div class="art-toolbar" id="art-colors">' + colorBtns + '</div>' +
+   '<div class="art-toolbar" id="art-brushes">' + brushBtns + '<button class="art-clear-btn" id="art-clear">🗑️ Clear</button></div>' +
+   '<canvas id="art-canvas" style="border:2px solid #ff44aa;border-radius:8px;background:#1a1a2e;cursor:crosshair;touch-action:none;display:block;margin:0 auto;box-shadow:0 0 20px rgba(255,68,170,0.2);"></canvas>' +
+   '<button class="academy-back-btn" id="art-back" style="margin-top:12px;">⬅ Back to Lobby</button>';
+  gameArea.appendChild(room);
+
+  var canvas = document.getElementById('art-canvas');
+  var maxW = Math.min(window.innerWidth - 40, 500);
+  canvas.width = maxW;
+  canvas.height = Math.min(320, Math.floor(maxW * 0.7));
+  var ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  function getCanvasPos(e) {
+   var rect = canvas.getBoundingClientRect();
+   var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+   var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+   return {
+    x: (clientX - rect.left) * (canvas.width / rect.width),
+    y: (clientY - rect.top) * (canvas.height / rect.height)
+   };
+  }
+
+  function startDraw(e) {
+   e.preventDefault();
+   drawing = true;
+   var pos = getCanvasPos(e);
+   lastX = pos.x;
+   lastY = pos.y;
+   ctx.beginPath();
+   ctx.arc(pos.x, pos.y, currentBrush / 2, 0, Math.PI * 2);
+   ctx.fillStyle = currentColor;
+   ctx.fill();
+  }
+
+  function doDraw(e) {
+   e.preventDefault();
+   if (!drawing) return;
+   var pos = getCanvasPos(e);
+   ctx.beginPath();
+   ctx.moveTo(lastX, lastY);
+   ctx.lineTo(pos.x, pos.y);
+   ctx.strokeStyle = currentColor;
+   ctx.lineWidth = currentBrush;
+   ctx.lineCap = 'round';
+   ctx.lineJoin = 'round';
+   ctx.stroke();
+   lastX = pos.x;
+   lastY = pos.y;
+  }
+
+  function stopDraw(e) {
+   if (e) e.preventDefault();
+   drawing = false;
+  }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', doDraw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('mouseleave', stopDraw);
+  canvas.addEventListener('touchstart', startDraw, { passive: false });
+  canvas.addEventListener('touchmove', doDraw, { passive: false });
+  canvas.addEventListener('touchend', stopDraw, { passive: false });
+  canvas.addEventListener('touchcancel', stopDraw);
+
+  document.getElementById('art-colors').querySelectorAll('.art-color-btn').forEach(function(btn) {
+   btn.onclick = function() {
+    currentColor = btn.dataset.color;
+    document.getElementById('art-colors').querySelectorAll('.art-color-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+   };
+  });
+
+  document.getElementById('art-brushes').querySelectorAll('.art-brush-btn').forEach(function(btn) {
+   btn.onclick = function() {
+    currentBrush = parseInt(btn.dataset.size);
+    document.getElementById('art-brushes').querySelectorAll('.art-brush-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+   };
+  });
+
+  document.getElementById('art-clear').onclick = function() {
+   ctx.fillStyle = '#1a1a2e';
+   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  };
+
+  document.getElementById('art-back').onclick = showLobby;
+
+  roomCleanup = function() {};
+ }
+
+ // Start the academy at the lobby
+ showLobby();
+
+ gameCleanup = function() {
+  if (roomCleanup) { roomCleanup(); roomCleanup = null; }
+  var defBack = document.querySelector('.back-btn');
+  if (defBack) defBack.style.display = '';
  };
 }
