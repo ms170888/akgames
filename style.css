@@ -20,6 +20,11 @@ html, body {
     height: 100%;
     font-family: 'Rajdhani', sans-serif;
     background: var(--bg-dark);
+    background-image: url('bg.png');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     color: var(--text-main);
     overflow-x: hidden;
 }
