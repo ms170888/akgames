@@ -852,8 +852,268 @@ footer {
     color: #fff;
 }
 
+/* ==================== FAMILY GAME NIGHT ==================== */
+.family-card {
+    background: linear-gradient(135deg, #1a0a1a, #2a102a) !important;
+    border: 2px solid #cc44ff !important;
+    box-shadow: 0 0 20px rgba(204, 68, 255, 0.3), inset 0 0 30px rgba(255, 68, 170, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.family-card::before {
+    background: linear-gradient(135deg, #cc44ff, #ff44aa, #ff6699) !important;
+    opacity: 0.15 !important;
+}
+
+.family-card:hover {
+    box-shadow: 0 0 40px rgba(204, 68, 255, 0.5), 0 10px 40px rgba(255, 68, 170, 0.2) !important;
+    border-color: #dd66ff !important;
+}
+
+.family-card::after {
+    content: '🏠';
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 1rem;
+    animation: familyPulse 2s ease-in-out infinite;
+}
+
+@keyframes familyPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+}
+
+.family-card h2 {
+    color: #cc44ff !important;
+    text-shadow: 0 0 10px rgba(204, 68, 255, 0.5);
+}
+
+.family-btn {
+    border-color: #cc44ff !important;
+    color: #cc44ff !important;
+}
+
+.family-btn:hover {
+    background: #cc44ff !important;
+    color: var(--bg-dark) !important;
+    box-shadow: 0 0 15px #cc44ff !important;
+}
+
+/* Family Lobby */
+.family-lobby {
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+    padding: 20px 10px;
+}
+
+.family-lobby h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    color: #cc44ff;
+    text-shadow: 0 0 20px rgba(204, 68, 255, 0.5);
+    margin-bottom: 10px;
+}
+
+.family-lobby .family-subtitle {
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+.family-games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.family-game-btn {
+    background: linear-gradient(135deg, #1a0a2a, #2a1040);
+    border: 2px solid #cc44ff44;
+    border-radius: 12px;
+    padding: 18px 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: var(--text-main);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+}
+
+.family-game-btn:hover {
+    border-color: #cc44ff;
+    box-shadow: 0 0 20px rgba(204, 68, 255, 0.3);
+    transform: translateY(-3px);
+}
+
+.family-game-btn .fgb-icon {
+    font-size: 2rem;
+    margin-bottom: 6px;
+}
+
+.family-game-btn .fgb-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    color: #cc44ff;
+}
+
+/* Pass the phone screen */
+.pass-phone-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10, 10, 26, 0.97);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: passPhoneFadeIn 0.4s ease;
+}
+
+@keyframes passPhoneFadeIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.pass-phone-screen .pass-emoji {
+    font-size: 5rem;
+    animation: passPhoneBounce 1s ease-in-out infinite;
+}
+
+@keyframes passPhoneBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+.pass-phone-screen .pass-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    color: #cc44ff;
+    text-shadow: 0 0 20px rgba(204, 68, 255, 0.5);
+    margin: 15px 0;
+}
+
+.pass-phone-screen .pass-msg {
+    font-size: 1.3rem;
+    color: var(--text-dim);
+    margin-bottom: 25px;
+}
+
+.pass-phone-screen .pass-ready-btn {
+    padding: 18px 50px;
+    font-size: 1.4rem;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    background: linear-gradient(135deg, #cc44ff, #ff44aa);
+    color: #fff;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    animation: readyPulse 1.5s ease-in-out infinite;
+    transition: transform 0.2s;
+}
+
+.pass-phone-screen .pass-ready-btn:hover {
+    transform: scale(1.1);
+}
+
+@keyframes readyPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(204, 68, 255, 0.5); }
+    50% { box-shadow: 0 0 30px rgba(204, 68, 255, 0.8), 0 0 60px rgba(255, 68, 170, 0.3); }
+}
+
+/* Family back button */
+.family-back-btn {
+    display: inline-block;
+    margin: 15px 0;
+    padding: 8px 20px;
+    background: transparent;
+    color: #cc44ff;
+    border: 1px solid #cc44ff44;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+}
+
+.family-back-btn:hover {
+    border-color: #cc44ff;
+    box-shadow: 0 0 10px rgba(204, 68, 255, 0.3);
+}
+
+/* Family scoreboard */
+.family-scoreboard {
+    background: linear-gradient(135deg, #1a0a2a, #2a1040);
+    border: 2px solid #cc44ff44;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 15px 0;
+    width: 100%;
+    max-width: 400px;
+}
+
+.family-scoreboard h3 {
+    font-family: 'Orbitron', sans-serif;
+    color: #cc44ff;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.family-scoreboard .score-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-bottom: 1px solid #cc44ff22;
+    font-size: 1rem;
+}
+
+.family-scoreboard .score-row:last-child {
+    border-bottom: none;
+}
+
+/* Draw canvas container */
+.draw-canvas-container {
+    position: relative;
+    background: #fff;
+    border-radius: 10px;
+    margin: 10px auto;
+    touch-action: none;
+}
+
+.draw-toolbar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 8px 0;
+}
+
+.draw-toolbar button, .draw-toolbar .color-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #cc44ff44;
+    cursor: pointer;
+    font-size: 1rem;
+    background: #1a0a2a;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.draw-toolbar button:hover, .draw-toolbar .color-swatch:hover {
+    border-color: #cc44ff;
+    transform: scale(1.1);
+}
+
 @media (max-width: 380px) {
     .games-grid { grid-template-columns: 1fr; }
     .memory-grid { grid-template-columns: repeat(4, 60px); grid-template-rows: repeat(4, 60px); }
     .ttt-board { grid-template-columns: repeat(3, 80px); grid-template-rows: repeat(3, 80px); }
+    .family-games-grid { grid-template-columns: repeat(2, 1fr); }
 }

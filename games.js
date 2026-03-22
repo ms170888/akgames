@@ -99,6 +99,7 @@ function launchGame(name) {
  case 'tvhorror': initTVHorror(); break;
  case 'eating': initEatingSimulator(); break;
  case 'academy': initAcademy(); break;
+ case 'familynight': initFamilyNight(); break;
  }
 }
 
@@ -13076,5 +13077,814 @@ function initAcademy() {
   if (roomCleanup) { roomCleanup(); roomCleanup = null; }
   var defBack = document.querySelector('.back-btn');
   if (defBack) defBack.style.display = '';
+ };
+}
+
+// ==================== FAMILY GAME NIGHT ====================
+function initFamilyNight() {
+ var area = document.getElementById('game-area');
+ var header = document.getElementById('game-header');
+ var defaultBack = header.querySelector('.back-btn');
+ defaultBack.style.display = 'none';
+
+ var players = [];
+ var numPlayers = 0;
+ var familyScores = {};
+ var familyCleanup = null;
+
+ var PLAYER_COLORS = ['#00ff88', '#00d4ff', '#cc44ff', '#ff44aa'];
+ var PLAYER_EMOJIS = ['🟢', '🔵', '🟣', '🔴'];
+
+ function showPlayerSetup() {
+  area.innerHTML = `
+   <div class="family-lobby" style="margin:0 auto;">
+    <h2>👨‍👩‍👦 Family Game Night</h2>
+    <div style="font-size:3rem;margin:20px 0;">🛋️ 📺 🍿</div>
+    <p class="family-subtitle">How many players?</p>
+    <div style="display:flex;gap:15px;justify-content:center;margin:20px 0;">
+     <button onclick="window._fnSetPlayers(2)" style="padding:20px 35px;font-size:1.8rem;font-family:Orbitron,sans-serif;background:linear-gradient(135deg,#1a0a2a,#2a1040);border:2px solid #cc44ff;border-radius:15px;color:#cc44ff;cursor:pointer;transition:all 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">2</button>
+     <button onclick="window._fnSetPlayers(3)" style="padding:20px 35px;font-size:1.8rem;font-family:Orbitron,sans-serif;background:linear-gradient(135deg,#1a0a2a,#2a1040);border:2px solid #cc44ff;border-radius:15px;color:#cc44ff;cursor:pointer;transition:all 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">3</button>
+     <button onclick="window._fnSetPlayers(4)" style="padding:20px 35px;font-size:1.8rem;font-family:Orbitron,sans-serif;background:linear-gradient(135deg,#1a0a2a,#2a1040);border:2px solid #cc44ff;border-radius:15px;color:#cc44ff;cursor:pointer;transition:all 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">4</button>
+    </div>
+   </div>
+  `;
+ }
+
+ window._fnSetPlayers = function(n) {
+  numPlayers = n;
+  players = [];
+  askPlayerName(0);
+ };
+
+ function askPlayerName(index) {
+  var emojis = ['🎮', '🎯', '🎲', '🎪'];
+  area.innerHTML = `
+   <div class="family-lobby" style="margin:0 auto;">
+    <div style="font-size:4rem;animation:passPhoneBounce 1s ease-in-out infinite;">${emojis[index]}</div>
+    <h2 style="color:${PLAYER_COLORS[index]};">Player ${index + 1}</h2>
+    <p class="family-subtitle">What's your name?</p>
+    <input id="fn-name-input" type="text" maxlength="12" placeholder="Type your name..." style="padding:15px 20px;font-size:1.3rem;font-family:Rajdhani,sans-serif;background:#1a0a2a;border:2px solid ${PLAYER_COLORS[index]};border-radius:12px;color:#fff;text-align:center;width:250px;outline:none;" autofocus>
+    <br>
+    <button id="fn-name-btn" style="margin-top:15px;padding:14px 40px;font-size:1.2rem;font-family:Orbitron,sans-serif;background:linear-gradient(135deg,${PLAYER_COLORS[index]},#ff44aa);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:bold;" onclick="window._fnSubmitName(${index})">Next ➡️</button>
+   </div>
+  `;
+  var inp = document.getElementById('fn-name-input');
+  setTimeout(function() { inp.focus(); }, 100);
+  inp.addEventListener('keydown', function(e) {
+   if (e.key === 'Enter') window._fnSubmitName(index);
+  });
+ }
+
+ window._fnSubmitName = function(index) {
+  var inp = document.getElementById('fn-name-input');
+  var name = inp.value.trim() || ('Player ' + (index + 1));
+  players.push(name);
+  familyScores[name] = 0;
+  if (index + 1 < numPlayers) {
+   askPlayerName(index + 1);
+  } else {
+   showFamilyLobby();
+  }
+ };
+
+ function showFamilyLobby() {
+  if (familyCleanup) { familyCleanup(); familyCleanup = null; }
+  var scoreHTML = '';
+  for (var i = 0; i < players.length; i++) {
+   scoreHTML += '<div class="score-row"><span>' + PLAYER_EMOJIS[i] + ' ' + players[i] + '</span><span>' + familyScores[players[i]] + ' pts</span></div>';
+  }
+  area.innerHTML = `
+   <div class="family-lobby" style="margin:0 auto;">
+    <h2>👨‍👩‍👦 Family Game Night</h2>
+    <div style="font-size:2rem;margin:5px 0;">🛋️ 📺 🍿 🎉</div>
+    <p class="family-subtitle">Welcome, ${players.join(', ')}!</p>
+    <div class="family-scoreboard">
+     <h3>🏆 Family Scoreboard</h3>
+     ${scoreHTML}
+    </div>
+    <div class="family-games-grid">
+     <div class="family-game-btn" onclick="window._fnStartTrivia()">
+      <div class="fgb-icon">🎲</div>
+      <div class="fgb-title">Family Trivia</div>
+     </div>
+     <div class="family-game-btn" onclick="window._fnStartTTT()">
+      <div class="fgb-icon">❌⭕</div>
+      <div class="fgb-title">Tic Tac Toe</div>
+     </div>
+     <div class="family-game-btn" onclick="window._fnStartScore()">
+      <div class="fgb-icon">🎯</div>
+      <div class="fgb-title">Score Challenge</div>
+     </div>
+     <div class="family-game-btn" onclick="window._fnStartWord()">
+      <div class="fgb-icon">🧠</div>
+      <div class="fgb-title">Word Scramble</div>
+     </div>
+     <div class="family-game-btn" onclick="window._fnStartDraw()">
+      <div class="fgb-icon">🎨</div>
+      <div class="fgb-title">Draw & Guess</div>
+     </div>
+    </div>
+    <button class="family-back-btn" onclick="backToMenu()" style="margin-top:20px;">⬅ Back to AK Games</button>
+   </div>
+  `;
+ }
+
+ function showPassPhone(playerName, color, onReady) {
+  var overlay = document.createElement('div');
+  overlay.className = 'pass-phone-screen';
+  overlay.innerHTML = `
+   <div class="pass-emoji">📱</div>
+   <div class="pass-name" style="color:${color};">${playerName}'s Turn!</div>
+   <div class="pass-msg">Pass the phone to ${playerName}!</div>
+   <button class="pass-ready-btn" id="fn-ready-btn">I'm Ready! 🎮</button>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('fn-ready-btn').onclick = function() {
+   overlay.remove();
+   onReady();
+  };
+ }
+
+ // ===== FAMILY TRIVIA =====
+ var triviaQuestions = [
+  {q:"What is the biggest animal on Earth?", a:["Blue Whale","Elephant","Giraffe","Shark"], c:0, cat:"animals"},
+  {q:"How many legs does a spider have?", a:["6","8","10","4"], c:1, cat:"animals"},
+  {q:"What do caterpillars turn into?", a:["Worms","Butterflies","Bees","Ladybugs"], c:1, cat:"animals"},
+  {q:"Which animal is the tallest?", a:["Elephant","Horse","Giraffe","Bear"], c:2, cat:"animals"},
+  {q:"What sound does a cow make?", a:["Meow","Bark","Moo","Oink"], c:2, cat:"animals"},
+  {q:"What fruit is yellow and curved?", a:["Apple","Banana","Grape","Orange"], c:1, cat:"food"},
+  {q:"What do you put on top of a pizza?", a:["Ice cream","Cheese","Butter","Jam"], c:1, cat:"food"},
+  {q:"What is the color of a carrot?", a:["Purple","Green","Orange","Blue"], c:2, cat:"food"},
+  {q:"Which food is round and has a hole in the middle?", a:["Pizza","Donut","Cake","Bread"], c:1, cat:"food"},
+  {q:"What do chickens give us to eat?", a:["Milk","Eggs","Cheese","Honey"], c:1, cat:"food"},
+  {q:"In Finding Nemo, what type of fish is Nemo?", a:["Goldfish","Clownfish","Shark","Blowfish"], c:1, cat:"movies"},
+  {q:"What color is the Hulk?", a:["Red","Blue","Green","Yellow"], c:2, cat:"movies"},
+  {q:"What is the name of the snowman in Frozen?", a:["Snowy","Olaf","Frosty","Jack"], c:1, cat:"movies"},
+  {q:"In The Lion King, what is Simba's dad called?", a:["Scar","Mufasa","Timon","Pumbaa"], c:1, cat:"movies"},
+  {q:"What color is Lightning McQueen?", a:["Blue","Green","Red","Yellow"], c:2, cat:"movies"},
+  {q:"How many players are on a soccer team?", a:["9","10","11","12"], c:2, cat:"sports"},
+  {q:"In basketball, how many points is a regular shot?", a:["1","2","3","4"], c:1, cat:"sports"},
+  {q:"What sport uses a racket and a shuttlecock?", a:["Tennis","Badminton","Cricket","Squash"], c:1, cat:"sports"},
+  {q:"How many holes are on a full golf course?", a:["9","15","18","21"], c:2, cat:"sports"},
+  {q:"What do you hit in baseball?", a:["A puck","A ball","A birdie","A frisbee"], c:1, cat:"sports"},
+  {q:"What animal can sleep standing up?", a:["Cat","Horse","Dog","Fish"], c:1, cat:"funny"},
+  {q:"What is a group of flamingos called?", a:["A herd","A pack","A flamboyance","A flock"], c:2, cat:"funny"},
+  {q:"Can an ostrich fly?", a:["Yes","No","Only at night","Only babies"], c:1, cat:"funny"},
+  {q:"How many noses does a slug have?", a:["1","2","3","4"], c:3, cat:"funny"},
+  {q:"What color is a polar bear's skin?", a:["White","Pink","Black","Brown"], c:2, cat:"funny"},
+  {q:"Which planet is known as the Red Planet?", a:["Venus","Mars","Jupiter","Saturn"], c:1, cat:"funny"},
+  {q:"How many bones does a shark have?", a:["100","206","0","50"], c:2, cat:"funny"},
+  {q:"What is the fastest land animal?", a:["Lion","Horse","Cheetah","Zebra"], c:2, cat:"animals"},
+  {q:"What frozen treat is on a stick?", a:["Cake","Popsicle","Pie","Cookie"], c:1, cat:"food"},
+  {q:"What shape is a stop sign?", a:["Circle","Triangle","Square","Octagon"], c:3, cat:"funny"},
+ ];
+
+ window._fnStartTrivia = function() {
+  var questions = triviaQuestions.slice().sort(function() { return Math.random() - 0.5; }).slice(0, 15);
+  var scores = {};
+  for (var i = 0; i < players.length; i++) scores[players[i]] = 0;
+  var qIndex = 0;
+  var currentPlayer = 0;
+
+  function showTriviaQuestion() {
+   if (qIndex >= questions.length) {
+    showTriviaResults();
+    return;
+   }
+   var pName = players[currentPlayer];
+   var pColor = PLAYER_COLORS[currentPlayer];
+   showPassPhone(pName, pColor, function() {
+    var q = questions[qIndex];
+    var ansHTML = '';
+    for (var a = 0; a < q.a.length; a++) {
+     ansHTML += '<button class="family-game-btn" style="padding:15px;font-size:1.1rem;" onclick="window._fnTriviaAnswer(' + a + ',' + q.c + ')">' + q.a[a] + '</button>';
+    }
+    area.innerHTML = `
+     <div class="family-lobby" style="margin:0 auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+       <button class="family-back-btn" onclick="window._fnBackToLobby()">⬅ Lobby</button>
+       <span style="color:#888;font-size:0.9rem;">${qIndex + 1} / ${questions.length}</span>
+      </div>
+      <div style="font-size:0.85rem;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">${q.cat}</div>
+      <h2 style="color:${pColor};font-size:1.2rem;margin-bottom:5px;">${PLAYER_EMOJIS[currentPlayer]} ${pName}'s Turn</h2>
+      <div style="background:#1a0a2a;border:2px solid #cc44ff44;border-radius:12px;padding:20px;margin:15px 0;font-size:1.3rem;">${q.q}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">${ansHTML}</div>
+     </div>
+    `;
+   });
+  }
+
+  window._fnTriviaAnswer = function(picked, correct) {
+   var pName = players[currentPlayer];
+   var isRight = picked === correct;
+   if (isRight) {
+    scores[pName] = (scores[pName] || 0) + 10;
+    familyScores[pName] = (familyScores[pName] || 0) + 10;
+   }
+   var q = questions[qIndex];
+   area.innerHTML = `
+    <div class="family-lobby" style="margin:0 auto;">
+     <div style="font-size:4rem;margin:20px 0;">${isRight ? '🎉' : '😅'}</div>
+     <h2 style="color:${isRight ? '#00ff88' : '#ff4444'};">${isRight ? 'Correct!' : 'Not quite!'}</h2>
+     <p style="color:#888;font-size:1.1rem;margin:10px 0;">The answer was: <strong style="color:#00ff88;">${q.a[correct]}</strong></p>
+     <p style="color:${PLAYER_COLORS[currentPlayer]};font-size:1rem;">${pName}: ${scores[pName]} pts</p>
+     <button class="family-game-btn" style="margin:20px auto;padding:15px 40px;font-size:1.2rem;" onclick="window._fnTriviaNext()">Next ➡️</button>
+    </div>
+   `;
+  };
+
+  window._fnTriviaNext = function() {
+   qIndex++;
+   currentPlayer = (currentPlayer + 1) % players.length;
+   showTriviaQuestion();
+  };
+
+  function showTriviaResults() {
+   var sorted = players.slice().sort(function(a, b) { return (scores[b] || 0) - (scores[a] || 0); });
+   var podium = ['🥇', '🥈', '🥉', '4th'];
+   var html = '';
+   for (var i = 0; i < sorted.length; i++) {
+    var s = sorted[i];
+    html += '<div style="display:flex;justify-content:space-between;padding:12px 15px;background:#1a0a2a;border-radius:8px;margin:5px 0;font-size:1.2rem;border:1px solid ' + PLAYER_COLORS[players.indexOf(s)] + '44;"><span>' + podium[i] + ' ' + s + '</span><span style="color:#cc44ff;font-weight:bold;">' + (scores[s] || 0) + ' pts</span></div>';
+   }
+   area.innerHTML = `
+    <div class="family-lobby" style="margin:0 auto;">
+     <div style="font-size:3rem;margin:10px 0;">🏆</div>
+     <h2>Trivia Results!</h2>
+     <div style="font-size:2rem;color:#ffd700;margin:10px 0;">${sorted[0]} wins! 🎉</div>
+     <div style="width:100%;max-width:350px;margin:15px auto;">${html}</div>
+     <button class="family-game-btn" style="margin:15px auto;padding:15px 40px;font-size:1.1rem;" onclick="window._fnBackToLobby()">🏠 Back to Lobby</button>
+    </div>
+   `;
+  }
+
+  showTriviaQuestion();
+ };
+
+ // ===== FAMILY TIC TAC TOE =====
+ window._fnStartTTT = function() {
+  var p1Idx = 0, p2Idx = 1;
+  var board = [0,0,0,0,0,0,0,0,0];
+  var turn = 0; // 0 = p1, 1 = p2
+  var gameOver = false;
+  var tournamentRound = 0;
+  var tournamentPairs = [];
+
+  // Build tournament pairs if >2 players
+  if (players.length > 2) {
+   for (var i = 0; i < players.length; i++) {
+    for (var j = i + 1; j < players.length; j++) {
+     tournamentPairs.push([i, j]);
+    }
+   }
+  } else {
+   tournamentPairs = [[0, 1]];
+  }
+
+  function startRound() {
+   if (tournamentRound >= tournamentPairs.length) {
+    showTTTResults();
+    return;
+   }
+   p1Idx = tournamentPairs[tournamentRound][0];
+   p2Idx = tournamentPairs[tournamentRound][1];
+   board = [0,0,0,0,0,0,0,0,0];
+   turn = 0;
+   gameOver = false;
+   showPassPhone(players[p1Idx], PLAYER_COLORS[p1Idx], function() { renderTTT(); });
+  }
+
+  function renderTTT() {
+   var currentIdx = turn === 0 ? p1Idx : p2Idx;
+   var cells = '';
+   for (var i = 0; i < 9; i++) {
+    var symbol = board[i] === 1 ? '❌' : (board[i] === 2 ? '⭕' : '');
+    var bg = board[i] === 1 ? PLAYER_COLORS[p1Idx] + '22' : (board[i] === 2 ? PLAYER_COLORS[p2Idx] + '22' : '#1a0a2a');
+    cells += '<div onclick="window._fnTTTMove(' + i + ')" style="width:90px;height:90px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:' + bg + ';border:2px solid #cc44ff44;border-radius:10px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor=\'#cc44ff\'" onmouseout="this.style.borderColor=\'#cc44ff44\'">' + symbol + '</div>';
+   }
+   var roundInfo = tournamentPairs.length > 1 ? '<div style="color:#888;font-size:0.85rem;margin-bottom:5px;">Round ' + (tournamentRound + 1) + ' of ' + tournamentPairs.length + '</div>' : '';
+   area.innerHTML = `
+    <div class="family-lobby" style="margin:0 auto;">
+     <button class="family-back-btn" onclick="window._fnBackToLobby()">⬅ Lobby</button>
+     ${roundInfo}
+     <h2 style="font-size:1.3rem;">❌ <span style="color:${PLAYER_COLORS[p1Idx]};">${players[p1Idx]}</span> vs <span style="color:${PLAYER_COLORS[p2Idx]};">${players[p2Idx]}</span> ⭕</h2>
+     <div style="color:${PLAYER_COLORS[currentIdx]};font-size:1.1rem;margin:8px 0;">${PLAYER_EMOJIS[currentIdx]} ${players[currentIdx]}'s Turn (${turn === 0 ? '❌' : '⭕'})</div>
+     <div style="display:grid;grid-template-columns:repeat(3,90px);gap:8px;justify-content:center;margin:15px 0;">${cells}</div>
+    </div>
+   `;
+  }
+
+  window._fnTTTMove = function(idx) {
+   if (gameOver || board[idx] !== 0) return;
+   board[idx] = turn === 0 ? 1 : 2;
+   var winner = checkTTTWin();
+   if (winner) {
+    gameOver = true;
+    var winnerIdx = winner === 1 ? p1Idx : p2Idx;
+    familyScores[players[winnerIdx]] = (familyScores[players[winnerIdx]] || 0) + 15;
+    renderTTT();
+    setTimeout(function() {
+     area.innerHTML = `
+      <div class="family-lobby" style="margin:0 auto;">
+       <div style="font-size:4rem;margin:20px 0;">🎉</div>
+       <h2 style="color:${PLAYER_COLORS[winnerIdx]};">${players[winnerIdx]} wins!</h2>
+       <p style="color:#888;margin:10px 0;">+15 points!</p>
+       <button class="family-game-btn" style="margin:15px auto;padding:15px 40px;" onclick="window._fnTTTNextRound()">Next ➡️</button>
+      </div>
+     `;
+    }, 600);
+    return;
+   }
+   if (board.indexOf(0) === -1) {
+    gameOver = true;
+    renderTTT();
+    setTimeout(function() {
+     area.innerHTML = `
+      <div class="family-lobby" style="margin:0 auto;">
+       <div style="font-size:4rem;margin:20px 0;">🤝</div>
+       <h2>It's a tie!</h2>
+       <button class="family-game-btn" style="margin:15px auto;padding:15px 40px;" onclick="window._fnTTTNextRound()">Next ➡️</button>
+      </div>
+     `;
+    }, 600);
+    return;
+   }
+   turn = 1 - turn;
+   renderTTT();
+  };
+
+  window._fnTTTNextRound = function() {
+   tournamentRound++;
+   startRound();
+  };
+
+  function checkTTTWin() {
+   var lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+   for (var i = 0; i < lines.length; i++) {
+    var a = lines[i][0], b = lines[i][1], c = lines[i][2];
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+   }
+   return 0;
+  }
+
+  function showTTTResults() {
+   area.innerHTML = `
+    <div class="family-lobby" style="margin:0 auto;">
+     <div style="font-size:3rem;margin:10px 0;">🏆</div>
+     <h2>Tic Tac Toe Complete!</h2>
+     <p style="color:#888;margin:10px 0;">All rounds done!</p>
+     <button class="family-game-btn" style="margin:15px auto;padding:15px 40px;" onclick="window._fnBackToLobby()">🏠 Back to Lobby</button>
+    </div>
+   `;
+  }
+
+  startRound();
+ };
+
+ // ===== SCORE CHALLENGE =====
+ window._fnStartScore = function() {
+  var scores = {};
+  for (var i = 0; i < players.length; i++) scores[players[i]] = 0;
+  var currentPlayer = 0;
+  var timer = null;
+  var targetCount = 0;
+  var timeLeft = 30;
+
+  function startPlayerTurn() {
+   if (currentPlayer >= players.length) {
+    showScoreResults();
+    return;
+   }
+   showPassPhone(players[currentPlayer], PLAYER_COLORS[currentPlayer], function() {
+    targetCount = 0;
+    timeLeft = 30;
+    renderScoreGame();
+    timer = setInterval(function() {
+     timeLeft--;
+     var timerEl = document.getElementById('fn-score-timer');
+     if (timerEl) timerEl.textContent = timeLeft + 's';
+     if (timeLeft <= 0) {
+      clearInterval(timer);
+      scores[players[currentPlayer]] = targetCount;
+      familyScores[players[currentPlayer]] = (familyScores[players[currentPlayer]] || 0) + targetCount;
+      currentPlayer++;
+      setTimeout(function() { startPlayerTurn(); }, 500);
+     }
+    }, 1000);
+   });
+  }
+
+  function renderScoreGame() {
+   area.innerHTML = `
+    <div class="family-lobby" style="margin:0 auto;">
+     <button class="family-back-btn" onclick="window._fnScoreCleanup();window._fnBackToLobby();">⬅ Lobby</button>
+     <h2 style="color:${PLAYER_COLORS[currentPlayer]};font-size:1.2rem;">${PLAYER_EMOJIS[currentPlayer]} ${players[currentPlayer]}'s Turn</h2>
+     <div style="font-size:2rem;color:#ffd700;margin:5px 0;" id="fn-score-timer">${timeLeft}s</div>
+     <div style="font-size:1.5rem;color:#cc44ff;margin:5px 0;">Score: <span id="fn-score-count">${targetCount}</span></div>
+     <div id="fn-score-arena" style="position:relative;width:320px;height:400px;background:#0a0a1a;border:2px solid #cc44ff44;border-radius:12px;margin:10px auto;overflow:hidden;cursor:crosshair;"></div>
+    </div>
+   `;
+   spawnTarget();
+  }
+
+  function spawnTarget() {
+   var arena = document.getElementById('fn-score-arena');
+   if (!arena) return;
+   arena.innerHTML = '';
+   var size = 40 + Math.floor(Math.random() * 30);
+   var x = Math.floor(Math.random() * (280 - size));
+   var y = Math.floor(Math.random() * (360 - size));
+   var colors = ['#00ff88', '#00d4ff', '#cc44ff', '#ff44aa', '#ffd700'];
+   var color = colors[Math.floor(Math.random() * colors.length)];
+   var target = document.createElement('div');
+   target.style.cssText = 'position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + size + 'px;height:' + size + 'px;background:' + color + ';border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.5rem;animation:passPhoneFadeIn 0.2s;box-shadow:0 0 15px ' + color + ';';
+   target.textContent = '🎯';
+   target.onclick = function() {
+    targetCount++;
+    var countEl = document.getElementById('fn-score-count');
+    if (countEl) countEl.textContent = targetCount;
+    spawnTarget();
+   };
+   arena.appendChild(target);
+  }
+
+  window._fnScoreCleanup = function() {
+   if (timer) { clearInterval(timer); timer = null; }
+  };
+
+  function showScoreResults() {
+   var sorted = players.slice().sort(function(a, b) { return (scores[b] || 0) - (scores[a] || 0); });
+   var podium = ['🥇', '🥈', '🥉', '4th'];
+   var html = '';
+   for (var i = 0; i < sorted.length; i++) {
+    html += '<div style="display:flex;justify-content:space-between;padding:12px 15px;background:#1a0a2a;border-radius:8px;margin:5px 0;font-size:1.2rem;border:1px solid ' + PLAYER_COLORS[players.indexOf(sorted[i])] + '44;"><span>' + podium[i] + ' ' + sorted[i] + '</span><span style="color:#cc44ff;font-weight:bold;">' + (scores[sorted[i]] || 0) + ' taps</span></div>';
+   }
+   area.innerHTML = `
+    <div class="family-lobby" style="margin:0 auto;">
+     <div style="font-size:3rem;margin:10px 0;">🏆</div>
+     <h2>Score Challenge Results!</h2>
+     <div style="font-size:2rem;color:#ffd700;margin:10px 0;">${sorted[0]} wins! 🎉</div>
+     <div style="width:100%;max-width:350px;margin:15px auto;">${html}</div>
+     <button class="family-game-btn" style="margin:15px auto;padding:15px 40px;font-size:1.1rem;" onclick="window._fnBackToLobby()">🏠 Back to Lobby</button>
+    </div>
+   `;
+  }
+
+  familyCleanup = function() { if (timer) clearInterval(timer); };
+  startPlayerTurn();
+ };
+
+ // ===== WORD SCRAMBLE =====
+ window._fnStartWord = function() {
+  var wordList = [
+   'cat','dog','sun','moon','star','fish','bird','tree','book','cake',
+   'ball','frog','duck','bear','rain','snow','hand','foot','nose','milk',
+   'jump','play','sing','swim','clap','blue','pink','gold','ship','lamp',
+   'ring','drum','flag','seed','leaf','pond','rock','gate','wind','cave',
+   'hero','king','nest','pear','yarn','maze','bone','gift','kite','wave'
+  ];
+  var words = wordList.sort(function() { return Math.random() - 0.5; }).slice(0, players.length * 3);
+  var scores = {};
+  for (var i = 0; i < players.length; i++) scores[players[i]] = 0;
+  var wIndex = 0;
+  var currentPlayer = 0;
+  var startTime = 0;
+
+  function scramble(word) {
+   var arr = word.split('');
+   for (var i = arr.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+   }
+   var result = arr.join('');
+   return result === word ? scramble(word) : result;
+  }
+
+  function showWordRound() {
+   if (wIndex >= words.length) {
+    showWordResults();
+    return;
+   }
+   var pName = players[currentPlayer];
+   showPassPhone(pName, PLAYER_COLORS[currentPlayer], function() {
+    var word = words[wIndex];
+    var scrambled = scramble(word);
+    startTime = Date.now();
+    area.innerHTML = `
+     <div class="family-lobby" style="margin:0 auto;">
+      <button class="family-back-btn" onclick="window._fnBackToLobby()">⬅ Lobby</button>
+      <h2 style="color:${PLAYER_COLORS[currentPlayer]};font-size:1.2rem;">${PLAYER_EMOJIS[currentPlayer]} ${pName}'s Turn</h2>
+      <div style="color:#888;font-size:0.9rem;">${wIndex + 1} / ${words.length}</div>
+      <div style="font-size:3rem;font-family:Orbitron,sans-serif;color:#ffd700;letter-spacing:8px;margin:20px 0;text-transform:uppercase;">${scrambled}</div>
+      <p style="color:#888;margin-bottom:10px;">Unscramble the word!</p>
+      <input id="fn-word-input" type="text" maxlength="20" placeholder="Your answer..." style="padding:15px 20px;font-size:1.3rem;font-family:Rajdhani,sans-serif;background:#1a0a2a;border:2px solid ${PLAYER_COLORS[currentPlayer]};border-radius:12px;color:#fff;text-align:center;width:250px;outline:none;" autofocus>
+      <br>
+      <button class="family-game-btn" style="margin:15px auto;padding:12px 35px;font-size:1.1rem;" onclick="window._fnWordCheck()">Submit ✅</button>
+     </div>
+    `;
+    var inp = document.getElementById('fn-word-input');
+    setTimeout(function() { inp.focus(); }, 100);
+    inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') window._fnWordCheck(); });
+   });
+  }
+
+  window._fnWordCheck = function() {
+   var inp = document.getElementById('fn-word-input');
+   var answer = (inp.value || '').trim().toLowerCase();
+   var word = words[wIndex].toLowerCase();
+   var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+   var pName = players[currentPlayer];
+   var isRight = answer === word;
+   if (isRight) {
+    var pts = Math.max(5, 20 - Math.floor(elapsed));
+    scores[pName] = (scores[pName] || 0) + pts;
+    familyScores[pName] = (familyScores[pName] || 0) + pts;
+   }
+   area.innerHTML = `
+    <div class="family-lobby" style="margin:0 auto;">
+     <div style="font-size:4rem;margin:20px 0;">${isRight ? '🎉' : '😅'}</div>
+     <h2 style="color:${isRight ? '#00ff88' : '#ff4444'};">${isRight ? 'Correct!' : 'Not quite!'}</h2>
+     <p style="color:#888;font-size:1.1rem;">The word was: <strong style="color:#00ff88;text-transform:uppercase;">${word}</strong></p>
+     <p style="color:#888;">${isRight ? 'Solved in ' + elapsed + 's! +' + Math.max(5, 20 - Math.floor(elapsed)) + ' pts' : ''}</p>
+     <button class="family-game-btn" style="margin:20px auto;padding:15px 40px;" onclick="window._fnWordNext()">Next ➡️</button>
+    </div>
+   `;
+  };
+
+  window._fnWordNext = function() {
+   wIndex++;
+   currentPlayer = (currentPlayer + 1) % players.length;
+   showWordRound();
+  };
+
+  function showWordResults() {
+   var sorted = players.slice().sort(function(a, b) { return (scores[b] || 0) - (scores[a] || 0); });
+   var podium = ['🥇', '🥈', '🥉', '4th'];
+   var html = '';
+   for (var i = 0; i < sorted.length; i++) {
+    html += '<div style="display:flex;justify-content:space-between;padding:12px 15px;background:#1a0a2a;border-radius:8px;margin:5px 0;font-size:1.2rem;border:1px solid ' + PLAYER_COLORS[players.indexOf(sorted[i])] + '44;"><span>' + podium[i] + ' ' + sorted[i] + '</span><span style="color:#cc44ff;font-weight:bold;">' + (scores[sorted[i]] || 0) + ' pts</span></div>';
+   }
+   area.innerHTML = `
+    <div class="family-lobby" style="margin:0 auto;">
+     <div style="font-size:3rem;margin:10px 0;">🏆</div>
+     <h2>Word Scramble Results!</h2>
+     <div style="font-size:2rem;color:#ffd700;margin:10px 0;">${sorted[0]} wins! 🎉</div>
+     <div style="width:100%;max-width:350px;margin:15px auto;">${html}</div>
+     <button class="family-game-btn" style="margin:15px auto;padding:15px 40px;font-size:1.1rem;" onclick="window._fnBackToLobby()">🏠 Back to Lobby</button>
+    </div>
+   `;
+  }
+
+  showWordRound();
+ };
+
+ // ===== DRAW & GUESS =====
+ window._fnStartDraw = function() {
+  var drawWords = [
+   'cat','dog','house','tree','sun','flower','fish','car','boat','star',
+   'hat','shoe','pizza','apple','bird','ball','cake','rain','moon','heart',
+   'chair','lamp','book','snake','frog','ice cream','banana','cloud','robot','dinosaur'
+  ];
+  var usedWords = [];
+  var roundNum = 0;
+  var totalRounds = players.length * 2;
+  var drawerIdx = 0;
+  var currentWord = '';
+  var drawCanvas = null;
+  var drawCtx = null;
+  var isDrawing = false;
+  var drawColor = '#ffffff';
+  var drawSize = 4;
+
+  function startDrawRound() {
+   if (roundNum >= totalRounds) {
+    showDrawResults();
+    return;
+   }
+   drawerIdx = roundNum % players.length;
+   // Pick a word
+   var available = drawWords.filter(function(w) { return usedWords.indexOf(w) === -1; });
+   if (available.length === 0) { usedWords = []; available = drawWords.slice(); }
+   currentWord = available[Math.floor(Math.random() * available.length)];
+   usedWords.push(currentWord);
+
+   // Show word to drawer privately
+   showPassPhone(players[drawerIdx], PLAYER_COLORS[drawerIdx], function() {
+    area.innerHTML = `
+     <div class="family-lobby" style="margin:0 auto;">
+      <div style="font-size:3rem;margin:15px 0;">🤫</div>
+      <h2 style="color:${PLAYER_COLORS[drawerIdx]};">${players[drawerIdx]}, your word is:</h2>
+      <div style="font-size:2.5rem;color:#ffd700;font-family:Orbitron,sans-serif;margin:20px 0;background:#1a0a2a;border:2px solid #ffd700;border-radius:12px;padding:15px;">${currentWord.toUpperCase()}</div>
+      <p style="color:#888;">Don't let anyone else see! Press Ready when others have looked away.</p>
+      <button class="family-game-btn" style="margin:15px auto;padding:15px 40px;font-size:1.2rem;" onclick="window._fnStartDrawing()">Ready to Draw! 🎨</button>
+     </div>
+    `;
+   });
+  }
+
+  window._fnStartDrawing = function() {
+   area.innerHTML = `
+    <div class="family-lobby" style="margin:0 auto;">
+     <button class="family-back-btn" onclick="window._fnBackToLobby()">⬅ Lobby</button>
+     <h2 style="color:${PLAYER_COLORS[drawerIdx]};font-size:1.1rem;">🎨 ${players[drawerIdx]} is drawing! (Round ${roundNum + 1}/${totalRounds})</h2>
+     <div class="draw-toolbar" id="fn-draw-toolbar">
+      <div class="color-swatch" style="background:#ffffff;" onclick="window._fnDrawColor('#ffffff')"></div>
+      <div class="color-swatch" style="background:#ff4444;" onclick="window._fnDrawColor('#ff4444')"></div>
+      <div class="color-swatch" style="background:#00ff88;" onclick="window._fnDrawColor('#00ff88')"></div>
+      <div class="color-swatch" style="background:#00d4ff;" onclick="window._fnDrawColor('#00d4ff')"></div>
+      <div class="color-swatch" style="background:#ffd700;" onclick="window._fnDrawColor('#ffd700')"></div>
+      <div class="color-swatch" style="background:#cc44ff;" onclick="window._fnDrawColor('#cc44ff')"></div>
+      <button onclick="window._fnDrawClear()" title="Clear">🗑️</button>
+      <button onclick="window._fnDrawSmall()" title="Small brush" style="font-size:0.7rem;">●</button>
+      <button onclick="window._fnDrawBig()" title="Big brush" style="font-size:1.2rem;">●</button>
+     </div>
+     <div class="draw-canvas-container" style="width:300px;height:300px;">
+      <canvas id="fn-draw-canvas" width="300" height="300" style="border-radius:10px;"></canvas>
+     </div>
+     <button class="family-game-btn" style="margin:10px auto;padding:12px 35px;font-size:1.1rem;" onclick="window._fnDrawDone()">Done Drawing! ✅</button>
+    </div>
+   `;
+   drawCanvas = document.getElementById('fn-draw-canvas');
+   drawCtx = drawCanvas.getContext('2d');
+   drawCtx.fillStyle = '#ffffff';
+   drawCtx.fillRect(0, 0, 300, 300);
+   drawCtx.lineCap = 'round';
+   drawCtx.lineJoin = 'round';
+   drawColor = '#000000';
+   drawSize = 4;
+
+   function getPos(e) {
+    var rect = drawCanvas.getBoundingClientRect();
+    var touch = e.touches ? e.touches[0] : e;
+    return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+   }
+
+   function startDraw(e) {
+    e.preventDefault();
+    isDrawing = true;
+    var pos = getPos(e);
+    drawCtx.beginPath();
+    drawCtx.moveTo(pos.x, pos.y);
+   }
+   function doDraw(e) {
+    e.preventDefault();
+    if (!isDrawing) return;
+    var pos = getPos(e);
+    drawCtx.strokeStyle = drawColor;
+    drawCtx.lineWidth = drawSize;
+    drawCtx.lineTo(pos.x, pos.y);
+    drawCtx.stroke();
+   }
+   function endDraw(e) {
+    e.preventDefault();
+    isDrawing = false;
+   }
+
+   drawCanvas.addEventListener('mousedown', startDraw);
+   drawCanvas.addEventListener('mousemove', doDraw);
+   drawCanvas.addEventListener('mouseup', endDraw);
+   drawCanvas.addEventListener('mouseleave', endDraw);
+   drawCanvas.addEventListener('touchstart', startDraw);
+   drawCanvas.addEventListener('touchmove', doDraw);
+   drawCanvas.addEventListener('touchend', endDraw);
+  };
+
+  window._fnDrawColor = function(c) { drawColor = c; };
+  window._fnDrawClear = function() {
+   if (drawCtx) { drawCtx.fillStyle = '#ffffff'; drawCtx.fillRect(0, 0, 300, 300); }
+  };
+  window._fnDrawSmall = function() { drawSize = 3; };
+  window._fnDrawBig = function() { drawSize = 10; };
+
+  window._fnDrawDone = function() {
+   // Save the drawing as data URL
+   var drawingData = drawCanvas ? drawCanvas.toDataURL() : '';
+   // Guessing phase: each non-drawer player guesses
+   var guessers = [];
+   for (var i = 0; i < players.length; i++) {
+    if (i !== drawerIdx) guessers.push(i);
+   }
+   var guessIdx = 0;
+   var anyCorrect = false;
+
+   function nextGuesser() {
+    if (guessIdx >= guessers.length) {
+     // Round over
+     roundNum++;
+     setTimeout(function() {
+      area.innerHTML = `
+       <div class="family-lobby" style="margin:0 auto;">
+        <div style="font-size:4rem;margin:20px 0;">${anyCorrect ? '🎨' : '🤷'}</div>
+        <h2>The word was: <span style="color:#ffd700;">${currentWord.toUpperCase()}</span></h2>
+        <button class="family-game-btn" style="margin:20px auto;padding:15px 40px;" onclick="window._fnDrawNextRound()">Next Round ➡️</button>
+       </div>
+      `;
+     }, 300);
+     return;
+    }
+    var gIdx = guessers[guessIdx];
+    showPassPhone(players[gIdx], PLAYER_COLORS[gIdx], function() {
+     area.innerHTML = `
+      <div class="family-lobby" style="margin:0 auto;">
+       <h2 style="color:${PLAYER_COLORS[gIdx]};font-size:1.2rem;">${PLAYER_EMOJIS[gIdx]} ${players[gIdx]}, what did ${players[drawerIdx]} draw?</h2>
+       <img src="${drawingData}" style="width:280px;height:280px;border-radius:10px;border:2px solid #cc44ff44;margin:10px 0;">
+       <br>
+       <input id="fn-guess-input" type="text" maxlength="30" placeholder="Your guess..." style="padding:12px 20px;font-size:1.2rem;font-family:Rajdhani,sans-serif;background:#1a0a2a;border:2px solid ${PLAYER_COLORS[gIdx]};border-radius:12px;color:#fff;text-align:center;width:250px;outline:none;" autofocus>
+       <br>
+       <button class="family-game-btn" style="margin:10px auto;padding:12px 35px;" onclick="window._fnCheckGuess()">Guess! 🤔</button>
+      </div>
+     `;
+     var inp = document.getElementById('fn-guess-input');
+     setTimeout(function() { inp.focus(); }, 100);
+     inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') window._fnCheckGuess(); });
+    });
+   }
+
+   window._fnCheckGuess = function() {
+    var inp = document.getElementById('fn-guess-input');
+    var guess = (inp.value || '').trim().toLowerCase();
+    var isRight = guess === currentWord.toLowerCase();
+    var gIdx = guessers[guessIdx];
+    if (isRight) {
+     anyCorrect = true;
+     familyScores[players[gIdx]] = (familyScores[players[gIdx]] || 0) + 10;
+     familyScores[players[drawerIdx]] = (familyScores[players[drawerIdx]] || 0) + 5;
+    }
+    area.innerHTML = `
+     <div class="family-lobby" style="margin:0 auto;">
+      <div style="font-size:4rem;margin:20px 0;">${isRight ? '🎉' : '❌'}</div>
+      <h2 style="color:${isRight ? '#00ff88' : '#ff4444'};">${isRight ? 'Correct! +10 pts' : 'Wrong!'}</h2>
+      ${isRight ? '<p style="color:#888;">' + players[drawerIdx] + ' also gets +5 pts for drawing!</p>' : ''}
+      <button class="family-game-btn" style="margin:20px auto;padding:12px 35px;" onclick="window._fnNextGuesser()">Next ➡️</button>
+     </div>
+    `;
+   };
+
+   window._fnNextGuesser = function() {
+    guessIdx++;
+    nextGuesser();
+   };
+
+   nextGuesser();
+  };
+
+  window._fnDrawNextRound = function() {
+   startDrawRound();
+  };
+
+  function showDrawResults() {
+   area.innerHTML = `
+    <div class="family-lobby" style="margin:0 auto;">
+     <div style="font-size:3rem;margin:10px 0;">🎨🏆</div>
+     <h2>Draw & Guess Complete!</h2>
+     <p style="color:#888;margin:10px 0;">All rounds done! Check the scoreboard!</p>
+     <button class="family-game-btn" style="margin:15px auto;padding:15px 40px;font-size:1.1rem;" onclick="window._fnBackToLobby()">🏠 Back to Lobby</button>
+    </div>
+   `;
+  }
+
+  startDrawRound();
+ };
+
+ // ===== BACK TO LOBBY =====
+ window._fnBackToLobby = function() {
+  if (familyCleanup) { familyCleanup(); familyCleanup = null; }
+  showFamilyLobby();
+ };
+
+ // Start!
+ showPlayerSetup();
+
+ gameCleanup = function() {
+  if (familyCleanup) { familyCleanup(); familyCleanup = null; }
+  // Clean up any pass-phone overlays
+  var overlays = document.querySelectorAll('.pass-phone-screen');
+  for (var i = 0; i < overlays.length; i++) overlays[i].remove();
+  defaultBack.style.display = '';
+  // Clean up global handlers
+  delete window._fnSetPlayers;
+  delete window._fnSubmitName;
+  delete window._fnBackToLobby;
+  delete window._fnStartTrivia;
+  delete window._fnTriviaAnswer;
+  delete window._fnTriviaNext;
+  delete window._fnStartTTT;
+  delete window._fnTTTMove;
+  delete window._fnTTTNextRound;
+  delete window._fnStartScore;
+  delete window._fnScoreCleanup;
+  delete window._fnStartWord;
+  delete window._fnWordCheck;
+  delete window._fnWordNext;
+  delete window._fnStartDraw;
+  delete window._fnStartDrawing;
+  delete window._fnDrawColor;
+  delete window._fnDrawClear;
+  delete window._fnDrawSmall;
+  delete window._fnDrawBig;
+  delete window._fnDrawDone;
+  delete window._fnCheckGuess;
+  delete window._fnNextGuesser;
+  delete window._fnDrawNextRound;
  };
 }
